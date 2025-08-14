@@ -14,6 +14,8 @@ const { initializeDatabase } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+app.set('trust proxy', 1);
+
 // --- Configuration & Global Paths ---
 const projectRoot = process.cwd();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -67,7 +69,6 @@ const apiLimiter = rateLimit({
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     message: { error: 'Too many requests, please try again after 15 minutes.' },
     // Tell express-rate-limit to trust the x-forwarded-for header set by Render
-    trustProxy: 1, 
 });
 
 // --- Route Handling ---
