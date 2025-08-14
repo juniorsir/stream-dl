@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Downloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <div class="container">
+        <header>
+            <h1>Video Downloader</h1>
+            <p>Paste a video link below to get started.</p>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <input type="url" id="video-url" placeholder="https://...">
+            </div>
+
+            <div id="status-area"></div>
+
+            <div id="results-area" class="hidden">
+                <div class="video-info hidden">
+                    <img id="video-thumbnail" src="" alt="Video Thumbnail">
+                    <h2 id="video-title"></h2>
+                </div>
+                <h3>Available Formats</h3>
+                <div id="formats-list" class="formats-list">
+                    <!-- Format items will be injected here by JavaScript -->
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <a href="/admin.html" target="_blank">Admin Dashboard</a>
+        </footer>
+        
+    </div> <!-- End of .container -->
+
+    <!-- Modal for displaying the temporary URL -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div id="modal-content" class="modal-content">
+            <span class="close-button">×</span>
+            <h3>Temporary Direct URL</h3>
+            <textarea id="direct-url-display" readonly></textarea>
+            <button id="copy-url-btn" class="modal-button">Copy Link</button>
+            <p class="warning">This link is temporary. Use the 'Download' button for a reliable transfer.</p>
+        </div>
+    </div>
+
+    <script src="script.js?v=display-fix"></script>
+</body>
+</html>

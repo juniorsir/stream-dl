@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapStream - Fast & Easy Video Downloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Sticky Application Header -->
+    <header class="app-header">
+        <nav class="main-nav">
+            <a href="#downloader" class="logo-group">
+                <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-labelledby="logoTitle"><title id="logoTitle">SnapStream Logo</title><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="7,10 12,15 17,10"></polyline></svg>
+                <span class="logo-text">SnapStream</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#downloader" data-section="downloader" title="Download" class="active">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </a></li>
+                <li><a href="#how-to" data-section="how-to" title="How To">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.879 7.519c.355-1.06.96-1.99 1.748-2.533.787-.543 1.838-.64 2.832-.305.994.335 1.872 1.057 2.333 2.001.46 1.02.464 2.213-.004 3.233-1.22 2.73-4.21 3.533-4.21 3.533"/><path d="M12 18h.01"/></svg>
+                </a></li>
+                <li><a href="#features" data-section="features" title="Features">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 4.2-4.3.6 3.1 3-1 4.2 3.8-2 3.8 2-1-4.2 3.1-3-4.3-.6Z"/></svg>
+                </a></li>
+                <!-- This link now correctly points to the admin page that should be in the public folder -->
+                <li><a href="/admin.html" target="_blank" title="Admin">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20h-6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2Z"/><path d="M12 14v.01"/><path d="M12 10v.01"/></svg>
+                </a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main application content -->
+    <main>
+        <section id="downloader" class="content-section">
+            <div class="container">
+                <div class="tool-header">
+                    <h1>Your Content, Offline.</h1>
+                    <p>Paste any video link below to get started.</p>
+                </div>
+                <div class="input-section">
+                    <div class="input-wrapper">
+                        <input type="url" id="video-url" placeholder="https://...">
+                        <img id="url-favicon" class="url-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWxpbmstMiI+PHBhdGggZD0iTTE1IDdjMyAwIDUgMiA1IDVzLTIgNS01IDVtLTYgMGE1IDUgMCAwIDEtNy4wNy03LjA3TDEwLjkyIDgiLz48cGF0aCBkPSJtOCA4IDEyIDEyIi8+PC9zdmc+" alt="URL icon">
+                    </div>
+                    <button id="paste-btn" title="Paste from Clipboard">Paste</button>
+                </div>
+                <div id="status-area"></div>
+                <div id="results-area" class="hidden">
+                    <div class="video-info hidden">
+                        <div class="thumbnail-container">
+                            <img id="video-thumbnail" src="" alt="Video Thumbnail">
+                            <button id="preview-thumb-btn" class="preview-btn" title="View full-size thumbnail">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
+                        <h2 id="video-title"></h2>
+                    </div>
+                    <h3 class="hidden">Available Formats</h3>
+                    <div id="formats-list" class="formats-list"></div>
+                </div>
+            </div>
+        </section>
+        <section id="history-section" class="content-section hidden">
+            <div class="container">
+                <div class="history-header">
+                    <h2>Recent Activity</h2>
+                    <button id="clear-history-btn">Clear History</button>
+                </div>
+                <div id="history-list"></div>
+            </div>
+        </section>
+        <section id="how-to" class="content-section info-section">
+            <div class="container">
+                <h2>How It Works</h2>
+                <div class="step-cards">
+                    <div class="card">
+                        <h3>1. Paste Link</h3>
+                        <p>Copy the URL of the video you want to download and paste it into the input field above.</p>
+                    </div>
+                    <div class="card">
+                        <h3>2. Choose Format</h3>
+                        <p>Wait for the available formats to load, then select the resolution and quality that you need.</p>
+                    </div>
+                    <div class="card">
+                        <h3>3. Download</h3>
+                        <p>Click the "Download" button. Your file will be prepared and the download will start automatically.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="features" class="content-section info-section">
+             <div class="container">
+                <h2>Powerful Features</h2>
+                <div class="step-cards">
+                    <div class="card">
+                        <h3>Smart Merging</h3>
+                        <p>For sites that separate video and audio, we automatically find the best quality of each and merge them for you.</p>
+                    </div>
+                    <div class="card">
+                        <h3>History</h3>
+                        <p>We remember your recent downloads so you can easily access them again without finding the link.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Secure & Private</h3>
+                        <p>Your connection is secure, and we don't store your downloaded content or personal data.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        © 2024 SnapStream. All rights reserved. | <a href="#" id="privacy-policy-link">Privacy Policy & Terms of Service</a>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Get Link Modal -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <h3>Direct Download Link</h3>
+            <p class="warning">This link is temporary and may expire. Do not share it widely.</p>
+            <textarea id="direct-url-display" readonly></textarea>
+            <div class="modal-actions">
+                <button id="copy-url-btn" class="modal-button">Copy Link</button>
+                <button id="share-btn" class="modal-button secondary hidden">Share</button>
+            </div>
+        </div>
+    </div>
+    <!-- Thumbnail Preview Modal -->
+    <div id="thumbnail-modal-overlay" class="modal-overlay image-modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <img id="full-res-thumbnail" src="" alt="Full resolution thumbnail">
+        </div>
+    </div>
+    <!-- Privacy Policy Modal -->
+    <div id="privacy-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <div class="privacy-content">
+                <h2>Privacy Policy & Terms of Service</h2>
+                <p><strong>Last Updated: October 26, 2023</strong></p>
+
+                <h3>1. Introduction</h3>
+                <p>Welcome to SnapStream ("the Service"). This service provides a technical means to download video content from various public-facing websites. By using our service, you agree to these terms and our privacy practices.</p>
+
+                <h3>2. Data We Process</h3>
+                <ul>
+                    <li><strong>Submitted URLs:</strong> We process the video URLs you submit to fetch download links. These URLs are processed on our server but are not stored long-term in association with any personal data.</li>
+                    <li><strong>Download History:</strong> To provide the "Recent Activity" feature, a history of your downloaded video titles, thumbnails, and original URLs is stored locally in your browser's Local Storage. This data never leaves your computer and is not accessible by us.</li>
+                    <li><strong>Server Logs:</strong> Like most websites, our servers may automatically log standard information, such as your IP address and browser type, for security, debugging, and operational purposes. This data is not used to identify or track you personally.</li>
+                </ul>
+
+                <h3>3. Copyright and User Responsibility</h3>
+                <p><strong>SnapStream is a technical tool and does not host any copyrighted material on its servers.</strong> The service acts as a client, accessing content on your behalf from publicly available third-party websites.</p>
+                <ul>
+                    <li>You, the user, are solely responsible for the content you choose to download.</li>
+                    <li>You must ensure that you have the legal right or permission from the copyright holder to download and use the content.</li>
+                    <li>This service is intended for use with public domain content, content for which you hold the copyright, or content where you have been given explicit permission to download (e.g., for educational purposes, personal archiving of your own content).</li>
+                    <li><strong>Downloading copyrighted material without permission from the rights holder may be illegal in your country. Using this service for such purposes is a violation of these terms.</strong></li>
+                </ul>
+                
+                <h3>4. Disclaimer of Warranty</h3>
+                <p>The service is provided "as is," without warranty of any kind. We do not guarantee that the service will be available, uninterrupted, or error-free at all times.</p>
+                
+                <h3>5. Limitation of Liability</h3>
+                <p>We shall not be held liable for any damages, including loss of data or legal issues, arising from the use or inability to use this service. You use this service at your own risk.</p>
+                
+                <p><em>This policy is for informational purposes only and does not constitute legal advice.</em></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="script.js" defer></script>
+</body>
+</html>

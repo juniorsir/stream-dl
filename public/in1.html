@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Downloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <div class="container">
+        <!-- MODIFIED: Header now uses a logo instead of text -->
+        <header>
+            <a href="/" class="logo-link" title="Homepage">
+                <!-- NEW SITE LOGO -->
+                <svg class="site-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-labelledby="logoTitle">
+                    <title id="logoTitle">Downloader Logo</title>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+            </a>
+            <p>Paste a video link below to get started.</p>
+        </header>
+
+        <!-- The rest of the file is unchanged -->
+        <main>
+            <div class="input-section">
+                <div class="input-wrapper">
+                    <input type="url" id="video-url" placeholder="https://...">
+                    <img id="url-favicon" class="url-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWxpbmstMiI+PHBhdGggZD0iTTE1IDdjMyAwIDUgMiA1IDVzLTIgNS01IDVtLTYgMGE1IDUgMCAwIDEtNy4wNy03LjA3TDEwLjkyIDgiLz48cGF0aCBkPSJtOCA4IDEyIDEyIi8+PC9zdmc+" alt="URL icon">
+                </div>
+                <button id="paste-btn" title="Paste from Clipboard">Paste</button>
+            </div>
+            <div id="status-area"></div>
+            <div id="results-area" class="hidden">
+                <div class="video-info hidden">
+                    <div class="thumbnail-container">
+                        <img id="video-thumbnail" src="" alt="Video Thumbnail">
+                        <button id="preview-thumb-btn" class="preview-btn" title="View full-size thumbnail">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
+                    <h2 id="video-title"></h2>
+                </div>
+                <h3 class="hidden">Available Formats</h3>
+                <div id="formats-list" class="formats-list"></div>
+            </div>
+            <section id="history-section" class="hidden">
+                <div class="history-header">
+                    <h2>History</h2>
+                    <button id="clear-history-btn">Clear History</button>
+                </div>
+                <div id="history-list"></div>
+            </section>
+        </main>
+        <footer>
+            <a href="/admin.html" target="_blank">Admin Dashboard</a>
+            <div class="theme-toggle">
+                <label class="switch">
+                    <input type="checkbox" id="theme-toggle-cb">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </footer>
+    </div>
+    <div id="modal-overlay" class="modal-overlay">
+        <div id="modal-content" class="modal-content">
+            <span class="close-button">×</span>
+            <h3>Temporary Direct URL</h3>
+            <textarea id="direct-url-display" readonly></textarea>
+            <div class="modal-actions">
+                <button id="copy-url-btn" class="modal-button">Copy Link</button>
+                <button id="share-btn" class="modal-button secondary hidden">Share</button>
+            </div>
+            <p class="warning">This link is temporary. Use the 'Download' button for a reliable transfer.</p>
+        </div>
+    </div>
+    <div id="thumbnail-modal-overlay" class="modal-overlay image-modal">
+        <div class="modal-content">
+            <span class="close-button">×</span>
+            <img id="full-res-thumbnail" src="" alt="Full-resolution thumbnail">
+        </div>
+    </div>
+    <div id="toast-container"></div>
+    <script src="script.js?v=final-logo"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "ultimate-video-api",
+  "version": "4.0.0",
+  "description": "A secure, production-grade service to get video download links, with a full UI and admin dashboard.",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "geoip-lite": "^1.4.10",
+    "jsonwebtoken": "^9.0.2",
+    "maxmind": "^5.0.0",
+    "node-cache": "^5.1.2",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

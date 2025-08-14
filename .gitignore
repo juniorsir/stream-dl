@@ -1,0 +1,11 @@
+
+/node_modules
+.env
+.DS_Store
+*.log
+
+nv
+.DS_Store
+*.log
+>>>>>>> a42d7ce (update)
+.vercel

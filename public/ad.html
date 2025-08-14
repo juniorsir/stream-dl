@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container admin-container">
+        <div id="login-container">
+            <!-- MODIFIED: Admin header with logo -->
+            <header class="admin-header-with-logo">
+                <svg class="site-logo-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <h1>Admin Login</h1>
+            </header>
+            <form id="login-form" class="admin-form">
+                <input type="password" id="password-input" placeholder="Enter Admin Password" required>
+                <button type="submit">Login</button>
+                <p id="login-error" class="error hidden"></p>
+            </form>
+        </div>
+        <div id="dashboard-container" class="hidden">
+            <!-- MODIFIED: Admin header with logo -->
+            <header class="dashboard-header admin-header-with-logo">
+                <div class="admin-title-group">
+                    <svg class="site-logo-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <h1>Admin Dashboard</h1>
+                </div>
+                <button id="logout-btn">Logout</button>
+            </header>
+            <!-- The rest of the file is unchanged -->
+            <section class="stats-grid"><div class="stat-card"><h3>Cached Items</h3><p id="cache-size">0</p></div><div class="stat-card"><h3>Recent Requests</h3><p id="log-size">0</p></div><div class="stat-card"><h3>Actions</h3><button id="clear-cache-btn" class="action-button">Clear Cache</button></div></section><section class="stat-card"><h3>Download Mode</h3><div class="setting-toggle"><label for="redirect-toggle">Smart Redirect (Saves Server Resources)</label><label class="switch"><input type="checkbox" id="redirect-toggle"><span class="slider round"></span></label></div><p class="setting-desc">ON = Browser downloads directly (less reliable, saves resources). OFF = Server streams download (reliable, uses resources).</p></section><section class="domain-management"><h2>Blocked Domains</h2><form id="block-domain-form" class="admin-form"><input type="text" id="domain-input" placeholder="e.g., youtube.com" required><button type="submit">Block Domain</button></form><div id="blocked-domains-list"></div></section><section class="request-log"><h2>Recent API Requests (Last 50)</h2><div id="requests-list"></div></section>
+        </div>
+    </div>
+    <script src="admin.js?v=final-logo"></script>
+</body>
+</html>
