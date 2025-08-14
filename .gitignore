@@ -4,6 +4,4 @@
 .DS_Store
 *.log
 
-nv
-.DS_Store
-*.log
+/bin
