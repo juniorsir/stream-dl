@@ -55,7 +55,14 @@ router.post('/get-data', verifyTicket, checkIfBlocked, async (req, res, next) =>
     try {
         // MODIFIED: Perform IP lookup and log with country code.
         // Get the real IP from the 'x-forwarded-for' header (used by services like Vercel/Render) or fall back to req.ip.
-        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        const forwardedFor = req.headers['x-forwarded-for'];
+        let ip;
+        if (forwardedFor) {
+            ip = forwardedFor.split(',')[0].trim();
+        } else {
+            ip = req.socket.remoteAddress;
+        }
+        
         console.log(`[DEBUG] Detected IP: ${ip}`);
         const geo = ip ? geoip.lookup(ip) : null;
         const countryCode = geo ? geo.country : null;
