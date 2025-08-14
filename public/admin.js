@@ -1,4 +1,4 @@
-// admin.js - Complete version with Analytics
+// admin.js - Complete version with Bulletproof Analytics Rendering
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const domainInput = document.getElementById('domain-input');
     const blockedDomainsList = document.getElementById('blocked-domains-list');
     const redirectToggle = document.getElementById('redirect-toggle');
-    // NEW: Analytics element selectors
     const dailyRequestsList = document.getElementById('daily-requests-list');
     const countryStatsList = document.getElementById('country-stats-list');
 
@@ -51,16 +50,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!adminPassword) return showLogin();
         const headers = { 'Authorization': `Bearer ${adminPassword}` };
         try {
-            // Fetch all data in parallel for performance
             const responses = await Promise.all([
                 fetch('/api/admin/stats', { headers }),
                 fetch('/api/admin/requests', { headers }),
                 fetch('/api/admin/blocked-domains', { headers }),
                 fetch('/api/admin/settings', { headers }),
-                fetch('/api/admin/analytics', { headers }) // <-- NEW
+                fetch('/api/admin/analytics', { headers })
             ]);
 
-            // Centralized error handling for all fetches
             const unauthorizedResponse = responses.find(res => res.status === 401);
             if (unauthorizedResponse) {
                 sessionStorage.removeItem('admin_password');
@@ -78,54 +75,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error);
             }
 
-            // Destructure the new analytics data
             const [stats, requests, domains, settings, analytics] = await Promise.all(responses.map(res => res.json()));
 
-            // Populate stats and settings
             if (cacheSizeEl) cacheSizeEl.textContent = stats.cacheSize;
             if (logSizeEl) logSizeEl.textContent = requests.length;
             if (redirectToggle) redirectToggle.checked = settings.is_redirect_mode_enabled;
 
-            // Render the analytics data
             renderDailyStats(analytics.dailyCounts);
             renderCountryStats(analytics.countryCounts);
-
-            // Populate request logs with country flags
-            if (requestsList) {
-                requestsList.innerHTML = '';
-                if (requests.length === 0) {
-                    requestsList.innerHTML = '<p>No recent requests to display.</p>';
-                } else {
-                    requests.forEach(req => {
-                        const item = document.createElement('div');
-                        item.className = 'request-item';
-                        const timestamp = new Date(req.timestamp).toLocaleString();
-                        const countryFlag = req.country_code
-                            ? `<img src="https://flagcdn.com/${req.country_code.toLowerCase()}.svg" width="20" class="country-flag" title="${req.country_code}">`
-                            : `<span class="country-flag" style="display: inline-block; width: 20px;"></span>`; // Placeholder for alignment
-                        
-                        item.innerHTML = `
-                            ${countryFlag}
-                            <span class="timestamp">${timestamp}</span>
-                            <span class="url" title="${req.url}">${req.url}</span>
-                            <button class="request-copy-btn" data-url="${req.url}" title="Copy URL">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                            </button>
-                        `;
-                        requestsList.appendChild(item);
-                    });
-                }
-            }
-
-            // Populate blocked domains
-            if (blockedDomainsList) {
-                blockedDomainsList.innerHTML = '';
-                if (domains.length === 0) {
-                    blockedDomainsList.innerHTML = '<p>No domains are currently blocked.</p>';
-                } else {
-                    domains.forEach(domain => addDomainToList(domain));
-                }
-            }
+            renderRequestLogs(requests);
+            renderBlockedDomains(domains);
 
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
@@ -133,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // NEW: Function to render daily request stats
     function renderDailyStats(dailyData) {
         if (!dailyRequestsList) return;
         dailyRequestsList.innerHTML = '';
@@ -153,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // NEW: Updated function to render country stats gracefully
+    // --- THIS IS THE DEFINITIVE FIX ---
     function renderCountryStats(countryData) {
         if (!countryStatsList) return;
         countryStatsList.innerHTML = '';
@@ -161,34 +119,33 @@ document.addEventListener('DOMContentLoaded', () => {
             countryStatsList.innerHTML = '<p>No country data from the last 30 days.</p>';
             return;
         }
-    
-        // Create the Intl.DisplayNames object once
+        
         const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
-    
+        // This regex ensures the code is a valid two-letter uppercase string.
+        const validCountryCodeRegex = /^[A-Z]{2}$/;
+        
         countryData.forEach(country => {
             const item = document.createElement('div');
             item.className = 'analytics-item';
-        
+            
             let fullName = "Unknown Origin";
-            // Default placeholder for the flag for null or invalid codes
             let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`;
 
-            // --- THE FIX IS HERE ---
-            // First, check if the country code exists and is a valid string.
-            if (country.country_code) {
+            // Proactively validate the code format before using the API
+            if (country.country_code && validCountryCodeRegex.test(country.country_code)) {
                 try {
-                    // Try to get the full name. This will throw an error for invalid codes.
                     fullName = countryNameResolver.of(country.country_code);
-                    // If successful, create the real flag HTML.
                     flagHtml = `<img class="country-flag" src="https://flagcdn.com/${country.country_code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
                 } catch (e) {
-                    // If Intl.DisplayNames fails (e.g., for "XX"), fall back to the code itself.
+                    // This is a safety net for rare cases where a valid-looking code is rejected
                     fullName = `Invalid Code (${country.country_code})`;
-                    console.warn(`Could not resolve country code: ${country.country_code}`);
+                    console.warn(`Intl API rejected a seemingly valid code: ${country.country_code}`);
                 }
+            } else if (country.country_code) {
+                // This handles non-null but invalid codes like "A1", "XX", etc.
+                fullName = `Invalid Code (${country.country_code})`;
             }
-            // If country.country_code is null, we just use the default "Unknown Origin" values.
-            // --- END OF FIX ---
+            // If country_code is null, the default "Unknown Origin" values are used.
 
             item.innerHTML = `
                 ${flagHtml}
@@ -199,7 +156,44 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const addDomainToList = (domain) => {
+    function renderRequestLogs(requests) {
+        if (!requestsList) return;
+        requestsList.innerHTML = '';
+        if (requests.length === 0) {
+            requestsList.innerHTML = '<p>No recent requests to display.</p>';
+        } else {
+            requests.forEach(req => {
+                const item = document.createElement('div');
+                item.className = 'request-item';
+                const timestamp = new Date(req.timestamp).toLocaleString();
+                const countryFlag = req.country_code
+                    ? `<img src="https://flagcdn.com/${req.country_code.toLowerCase()}.svg" width="20" class="country-flag" title="${req.country_code}">`
+                    : `<span class="country-flag" style="display: inline-block; width: 20px;"></span>`;
+                
+                item.innerHTML = `
+                    ${countryFlag}
+                    <span class="timestamp">${timestamp}</span>
+                    <span class="url" title="${req.url}">${req.url}</span>
+                    <button class="request-copy-btn" data-url="${req.url}" title="Copy URL">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    </button>
+                `;
+                requestsList.appendChild(item);
+            });
+        }
+    }
+
+    function renderBlockedDomains(domains) {
+        if (!blockedDomainsList) return;
+        blockedDomainsList.innerHTML = '';
+        if (domains.length === 0) {
+            blockedDomainsList.innerHTML = '<p>No domains are currently blocked.</p>';
+        } else {
+            domains.forEach(domain => addDomainToList(domain));
+        }
+    }
+
+    function addDomainToList(domain) {
         if (!blockedDomainsList) return;
         const placeholder = blockedDomainsList.querySelector('p');
         if (placeholder) placeholder.remove();
@@ -209,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.dataset.domain = domain;
         item.innerHTML = `<span class="url">${domain}</span><button class="remove-btn" data-domain="${domain}" title="Unblock ${domain}">×</button>`;
         blockedDomainsList.appendChild(item);
-    };
+    }
 
     // --- Event Listeners ---
     if (loginForm) {
@@ -255,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch('/api/admin/clear-cache', { method: 'POST', headers: { 'Authorization': `Bearer ${adminPassword}` } });
                  if (!response.ok) throw new Error('Server returned an error.');
-                fetchDashboardData(); // Refresh data
+                fetchDashboardData();
                 showAdminToast('Cache cleared successfully.', 'success');
             } catch (error) {
                 console.error("Failed to clear cache:", error);
@@ -277,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error("Failed to update setting:", error);
                 showAdminToast("Failed to update download mode setting.", 'error');
-                redirectToggle.checked = !isEnabled; // Revert on failure
+                redirectToggle.checked = !isEnabled;
             }
         });
     }
@@ -288,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const domain = domainInput.value.trim();
             if (!adminPassword || !domain) return;
             
-            addDomainToList(domain); // Optimistic UI update
+            addDomainToList(domain);
             const originalValue = domainInput.value;
             domainInput.value = '';
 
@@ -316,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!adminPassword || !confirm(`Are you sure you want to unblock "${domain}"?`)) return;
 
             const itemToRemove = e.target.closest('.request-item');
-            itemToRemove.remove(); // Optimistic removal
+            itemToRemove.remove();
             if (blockedDomainsList.children.length === 0) {
                  blockedDomainsList.innerHTML = '<p>No domains are currently blocked.</p>';
             }
@@ -327,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAdminToast(`Domain "${domain}" unblocked.`, 'success');
             } catch (error) {
                 showAdminToast(`Failed to unblock "${domain}". Reverting.`, 'error');
-                addDomainToList(domain); // Re-add on failure
+                addDomainToList(domain);
             }
         });
     }
