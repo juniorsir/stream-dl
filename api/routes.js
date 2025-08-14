@@ -1,6 +1,7 @@
 // api/routes.js - Updated with Analytics Endpoints
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { spawn } = require('child_process');
 const path = require('path');
 const axios = require('axios');
@@ -10,6 +11,14 @@ const { pool } = require('./db');
 const NodeCache = require('node-cache');
 
 const router = express.Router();
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Only 5 login attempts per 15 minutes per IP
+    message: { error: 'Too many login attempts. Please try again later.' },
+    trustProxy: 1,
+});
+
 const cache = new NodeCache({ stdTTL: 3600 });
 let blockedDomains = new Set();
 let isRedirectMode = false;
@@ -107,7 +116,7 @@ router.get('/image-proxy', async (req, res) => { const { url } = req.query; if (
 router.get('/download', (req, res, next) => { try { const { url, format_id, title } = req.query; if (!url || !format_id) return res.status(400).json({ error: 'URL and format_id required' }); let finalFormatString; const isVideoOnly = req.query.video_only === 'true'; if (isVideoOnly) { finalFormatString = `${format_id}+bestaudio`; } else { finalFormatString = format_id; } if (isRedirectMode) { const commandArgs = ['-f', finalFormatString, '--get-url', '--cookies', cookiesPath, url, '--ffmpeg-location', ffmpegPath]; const ytdlpProcess = spawn(ytDlpPath, commandArgs); let directUrl = ''; ytdlpProcess.stdout.on('data', (data) => directUrl += data.toString()); ytdlpProcess.on('error', (err) => next(err)); ytdlpProcess.on('close', (code) => { if (code !== 0) return res.status(500).send('Failed to get direct URL for redirect.'); res.redirect(302, directUrl.trim()); }); } else { const cleanTitle = (title || 'video').replace(/[^a-z0-9_.-]/gi, '_').substring(0, 100); res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.mp4"`); const commandArgs = [url, '-f', finalFormatString, '--cookies', cookiesPath, '-o', '-', '--ffmpeg-location', ffmpegPath]; const ytdlpProcess = spawn(ytDlpPath, commandArgs); ytdlpProcess.stdout.pipe(res); ytdlpProcess.stderr.on('data', (data) => console.error(`yt-dlp stderr: ${data}`)); ytdlpProcess.on('error', (err) => next(err)); } } catch (error) { if (!res.headersSent) res.status(500).json({ error: 'An internal server error occurred.' }); }});
 
 // --- Admin Endpoints ---
-router.post('/admin/login', (req, res) => { const { password } = req.body; if (!ADMIN_PASSWORD) return res.status(500).json({ error: "Admin not configured." }); if (password === ADMIN_PASSWORD) res.json({ success: true }); else res.status(401).json({ success: false, error: "Invalid password" }); });
+router.post('/admin/login', loginLimiter, (req, res) => { const { password } = req.body; if (!ADMIN_PASSWORD) return res.status(500).json({ error: "Admin not configured." }); if (password === ADMIN_PASSWORD) res.json({ success: true }); else res.status(401).json({ success: false, error: "Invalid password" }); });
 router.get('/admin/stats', verifyAdmin, (req, res) => { res.json({ cacheSize: cache.getStats().keys }); });
 
 // MODIFIED: /admin/requests now includes country code
