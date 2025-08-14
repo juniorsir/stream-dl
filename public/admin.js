@@ -153,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // NEW: Updated function to render country stats gracefully
     function renderCountryStats(countryData) {
         if (!countryStatsList) return;
         countryStatsList.innerHTML = '';
@@ -169,18 +170,19 @@ document.addEventListener('DOMContentLoaded', () => {
             item.className = 'analytics-item';
         
             let fullName = "Unknown Origin";
-            let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`; // Placeholder
+            // Default placeholder for the flag for null or invalid codes
+            let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`;
 
             // --- THE FIX IS HERE ---
             // First, check if the country code exists and is a valid string.
             if (country.country_code) {
                 try {
-                    // Try to get the full name. This will throw an error for invalid codes like "XX".
+                    // Try to get the full name. This will throw an error for invalid codes.
                     fullName = countryNameResolver.of(country.country_code);
-                    // If successful, create the flag HTML.
+                    // If successful, create the real flag HTML.
                     flagHtml = `<img class="country-flag" src="https://flagcdn.com/${country.country_code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
                 } catch (e) {
-                    // If Intl.DisplayNames fails, fall back to the code itself.
+                    // If Intl.DisplayNames fails (e.g., for "XX"), fall back to the code itself.
                     fullName = `Invalid Code (${country.country_code})`;
                     console.warn(`Could not resolve country code: ${country.country_code}`);
                 }
