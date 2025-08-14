@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { spawn } = require('child_process');
+const rateLimit = require('express-rate-limit'); // <-- 1. Import
 const apiRoutes = require('./routes');
 const { initializeDatabase } = require('./db');
 
@@ -59,8 +60,18 @@ app.use(cors()); // Enable Cross-Origin Resource Sharing for all routes.
 app.use(express.json()); // Enable the express app to parse JSON formatted request bodies.
 app.use(express.static(path.join(projectRoot, 'public'))); // Serve static files (HTML, CSS, JS) from the 'public' directory.
 
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 50, // Limit each IP to 50 requests per window (adjust as needed)
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: { error: 'Too many requests, please try again after 15 minutes.' },
+    // Tell express-rate-limit to trust the x-forwarded-for header set by Render
+    trustProxy: 1, 
+});
+
 // --- Route Handling ---
-app.use('/api', apiRoutes); // All API logic is handled by routes.js, prefixed with /api.
+app.use('/api', apiLimiter, apiRoutes); // All API logic is handled by routes.js, prefixed with /api.
 
 // A simple health check endpoint to verify the server is running.
 app.get('/health', (req, res) => {
