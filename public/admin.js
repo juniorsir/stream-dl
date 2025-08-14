@@ -1,4 +1,4 @@
-// admin.js - Complete version with Analytics
+// admin.js - Complete version with Analytics and Robust Country Code Handling
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const domainInput = document.getElementById('domain-input');
     const blockedDomainsList = document.getElementById('blocked-domains-list');
     const redirectToggle = document.getElementById('redirect-toggle');
-    // NEW: Analytics element selectors
     const dailyRequestsList = document.getElementById('daily-requests-list');
     const countryStatsList = document.getElementById('country-stats-list');
 
@@ -57,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('/api/admin/requests', { headers }),
                 fetch('/api/admin/blocked-domains', { headers }),
                 fetch('/api/admin/settings', { headers }),
-                fetch('/api/admin/analytics', { headers }) // <-- NEW
+                fetch('/api/admin/analytics', { headers })
             ]);
 
             // Centralized error handling for all fetches
@@ -78,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error);
             }
 
-            // Destructure the new analytics data
             const [stats, requests, domains, settings, analytics] = await Promise.all(responses.map(res => res.json()));
 
             // Populate stats and settings
@@ -133,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // NEW: Function to render daily request stats
+    // --- Analytics Rendering ---
     function renderDailyStats(dailyData) {
         if (!dailyRequestsList) return;
         dailyRequestsList.innerHTML = '';
@@ -153,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // NEW: Function to render country stats
+    // THIS IS THE MODIFIED FUNCTION
     function renderCountryStats(countryData) {
         if (!countryStatsList) return;
         countryStatsList.innerHTML = '';
@@ -161,22 +159,37 @@ document.addEventListener('DOMContentLoaded', () => {
             countryStatsList.innerHTML = '<p>No country data from the last 30 days.</p>';
             return;
         }
-        // Use the browser's Intl API to get full country names from codes
+        
         const countryName = new Intl.DisplayNames(['en'], { type: 'country' });
         
         countryData.forEach(country => {
             const item = document.createElement('div');
             item.className = 'analytics-item';
-            const fullName = countryName.of(country.country_code) || country.country_code;
+            
+            let fullName = 'Unknown';
+            let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; height: 18px; background: var(--border-color); border-radius: 3px;"></span>`;
+
+            // THE FIX: Check for a valid country code before using it.
+            if (country.country_code) {
+                try {
+                    // Try to get the full name. This is where the error happened.
+                    fullName = countryName.of(country.country_code) || country.country_code;
+                    flagHtml = `<img class="country-flag" src="https://flagcdn.com/${country.country_code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
+                } catch (e) {
+                    // If it fails, fall back to just showing the invalid code.
+                    fullName = `Invalid Code (${country.country_code})`;
+                    console.warn(`Could not find full name for country code: ${country.country_code}`);
+                }
+            }
+
             item.innerHTML = `
-                <img class="country-flag" src="https://flagcdn.com/${country.country_code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">
+                ${flagHtml}
                 <span class="country-name">${fullName}</span>
                 <span class="count">${country.count}</span>
             `;
             countryStatsList.appendChild(item);
         });
     }
-
 
     const addDomainToList = (domain) => {
         if (!blockedDomainsList) return;
@@ -190,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         blockedDomainsList.appendChild(item);
     };
 
-    // --- Event Listeners ---
+    // --- Event Listeners (No changes below) ---
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -296,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const itemToRemove = e.target.closest('.request-item');
             itemToRemove.remove(); // Optimistic removal
-            if (blockedDomainsList.children.length === 0) {
+            if (blockedDomainsList.children.length === <strong> 0) {
                  blockedDomainsList.innerHTML = '<p>No domains are currently blocked.</p>';
             }
 
