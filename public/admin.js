@@ -1,4 +1,4 @@
-// admin.js - Complete version with Analytics and Robust Country Code Handling
+// admin.js - Complete version with Analytics
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const domainInput = document.getElementById('domain-input');
     const blockedDomainsList = document.getElementById('blocked-domains-list');
     const redirectToggle = document.getElementById('redirect-toggle');
+    // NEW: Analytics element selectors
     const dailyRequestsList = document.getElementById('daily-requests-list');
     const countryStatsList = document.getElementById('country-stats-list');
 
@@ -56,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('/api/admin/requests', { headers }),
                 fetch('/api/admin/blocked-domains', { headers }),
                 fetch('/api/admin/settings', { headers }),
-                fetch('/api/admin/analytics', { headers })
+                fetch('/api/admin/analytics', { headers }) // <-- NEW
             ]);
 
             // Centralized error handling for all fetches
@@ -77,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(errorData.error);
             }
 
+            // Destructure the new analytics data
             const [stats, requests, domains, settings, analytics] = await Promise.all(responses.map(res => res.json()));
 
             // Populate stats and settings
@@ -131,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- Analytics Rendering ---
+    // NEW: Function to render daily request stats
     function renderDailyStats(dailyData) {
         if (!dailyRequestsList) return;
         dailyRequestsList.innerHTML = '';
@@ -151,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // THIS IS THE MODIFIED FUNCTION
     function renderCountryStats(countryData) {
         if (!countryStatsList) return;
         countryStatsList.innerHTML = '';
@@ -159,28 +160,33 @@ document.addEventListener('DOMContentLoaded', () => {
             countryStatsList.innerHTML = '<p>No country data from the last 30 days.</p>';
             return;
         }
-        
-        const countryName = new Intl.DisplayNames(['en'], { type: 'country' });
-        
+    
+        // Create the Intl.DisplayNames object once
+        const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
+    
         countryData.forEach(country => {
             const item = document.createElement('div');
             item.className = 'analytics-item';
-            
-            let fullName = 'Unknown';
-            let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; height: 18px; background: var(--border-color); border-radius: 3px;"></span>`;
+        
+            let fullName = "Unknown Origin";
+            let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`; // Placeholder
 
-            // THE FIX: Check for a valid country code before using it.
+            // --- THE FIX IS HERE ---
+            // First, check if the country code exists and is a valid string.
             if (country.country_code) {
                 try {
-                    // Try to get the full name. This is where the error happened.
-                    fullName = countryName.of(country.country_code) || country.country_code;
+                    // Try to get the full name. This will throw an error for invalid codes like "XX".
+                    fullName = countryNameResolver.of(country.country_code);
+                    // If successful, create the flag HTML.
                     flagHtml = `<img class="country-flag" src="https://flagcdn.com/${country.country_code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
                 } catch (e) {
-                    // If it fails, fall back to just showing the invalid code.
+                    // If Intl.DisplayNames fails, fall back to the code itself.
                     fullName = `Invalid Code (${country.country_code})`;
-                    console.warn(`Could not find full name for country code: ${country.country_code}`);
+                    console.warn(`Could not resolve country code: ${country.country_code}`);
                 }
             }
+            // If country.country_code is null, we just use the default "Unknown Origin" values.
+            // --- END OF FIX ---
 
             item.innerHTML = `
                 ${flagHtml}
@@ -203,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         blockedDomainsList.appendChild(item);
     };
 
-    // --- Event Listeners (No changes below) ---
+    // --- Event Listeners ---
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -309,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const itemToRemove = e.target.closest('.request-item');
             itemToRemove.remove(); // Optimistic removal
-            if (blockedDomainsList.children.length === <strong> 0) {
+            if (blockedDomainsList.children.length === 0) {
                  blockedDomainsList.innerHTML = '<p>No domains are currently blocked.</p>';
             }
 
