@@ -8,6 +8,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const rateLimit = require('express-rate-limit');
 const apiRoutes = require('./routes');
+const rapidApiRoutes = require('./rapidapi-routes');
 const { initializeDatabase } = require('./db');
 
 // --- Application Setup ---
@@ -62,7 +63,7 @@ const apiLimiter = rateLimit({
 // --- Route Handling (Recommended Order) ---
 // 1. API routes are handled first, with rate limiting applied.
 app.use('/api', apiLimiter, apiRoutes);
-
+app.use('/rapidapi', rapidApiRoutes); 
 // 2. Static files are served next.
 app.use(express.static(path.join(projectRoot, 'public')));
 
