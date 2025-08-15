@@ -93,8 +93,7 @@ router.post('/get-data', verifyRapidAPI, async (req, res, next) => {
                     let filesize_str = "N/A";
                     if (filesize) { const size_mib = filesize / (1024 * 1024); if (size_mib >= 1000) { filesize_str = `${(size_mib / 1024).toFixed(2)} GiB`; } else { filesize_str = `${size_mib.toFixed(1)} MiB`; } }
                     return { format_id: f.format_id, ext: f.ext, resolution: f.resolution || (f.height ? `${f.height}p` : "audio only"), filesize: filesize_str, vcodec: f.vcodec || 'none', acodec: f.acodec || 'none' };
-                }).filter(f => f.format_id);
-                .filter(Boolean);
+                }).filter(Boolean);
 
                 const responseData = { title: info.title, thumbnail: info.thumbnail, formats: formats };
                 cache.set(cacheKey, responseData);
