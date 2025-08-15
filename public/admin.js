@@ -149,28 +149,34 @@ document.addEventListener('DOMContentLoaded', () => {
             countryStatsList.innerHTML = '<p>No country data from the last 30 days.</p>';
             return;
         }
-        
+
         const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
         const validCountryCodeRegex = /^[A-Z]{2}$/;
-        
+
         countryData.forEach(country => {
             const item = document.createElement('div');
             item.className = 'analytics-item';
-            
-            let fullName = "Unknown Origin";
-            let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`;
 
-            if (country.country_code && validCountryCodeRegex.test(country.country_code)) {
-                try {
-                    fullName = countryNameResolver.of(country.country_code);
-                    flagHtml = `<img class="country-flag" src="https://flagcdn.com/${country.country_code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
-                } catch (e) {
-                    fullName = `Invalid Code (${country.country_code})`;
-                    console.warn(`Intl API rejected a seemingly valid code: ${country.country_code}`);
+            let fullName = "Unknown Origin";
+            let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
+
+            if (typeof country.country_code === "string") {
+            const code = country.country_code.toUpperCase().trim();
+                if (validCountryCodeRegex.test(code)) {
+                    try {
+                        const name = countryNameResolver.of(code);
+                        if (name && name !== code) { // ensures it's actually mapped
+                            fullName = name;
+                            flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
+                        } else {
+                            fullName = `Invalid Code (${code})`;
+                        }
+                    } catch {
+                        fullName = `Invalid Code (${code})`;
+                    }
+                } else {
+                    fullName = `Invalid Code (${code})`;
                 }
-            } else if (country.country_code) {
-                // Handles non-null but invalid format codes
-                fullName = `Invalid Code (${country.country_code})`;
             }
 
             item.innerHTML = `
@@ -181,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
             countryStatsList.appendChild(item);
         });
     }
-
     function renderRequestLogs(requests) {
         if (!requestsList) return;
         requestsList.innerHTML = '';
