@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapStream - Admin Dashboard</title>
-    <!-- Link to the main stylesheet to inherit all the base styles and variables -->
+    <!-- Link to the main stylesheet to inherit all base styles and variables -->
     <link rel="stylesheet" href="style.css">
+    <!-- Link to the admin script with cache-busting and defer for best practice -->
+    <script src="admin.js?v=3" defer></script>
     <style>
         /* Admin-specific styles that build upon the main style.css */
         body {
@@ -95,12 +97,7 @@
         .admin-button.danger:hover { background-color: #c82333; }
 
         /* Grid and Card Styling */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
         .card h3 { color: var(--text-secondary); text-transform: uppercase; font-size: 0.9rem; margin-bottom: 0.5rem; }
         .card p { color: var(--text-primary); font-size: 1.5rem; font-weight: 500; }
         .card .action-button { background-color: var(--border-color); color: var(--text-primary); }
@@ -126,20 +123,23 @@
         .request-item .remove-btn, .request-item .request-copy-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0.25rem; }
         .request-item .remove-btn:hover, .request-item .request-copy-btn:hover { color: var(--text-primary); }
 
-        /* --- THIS IS THE FIX FOR THE LARGE FLAG BUG --- */
-        .request-item .country-flag {
-            width: 20px;
-            height: 15px; /* Maintain aspect ratio */
-            object-fit: cover;
-            border-radius: 2px;
-            flex-shrink: 0; /* Prevent the flag from shrinking */
-        }
-
-        /* Analytics specific styles */
+        /* Analytics Specific Styles */
         .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-        .analytics-item .country-flag { width: 24px; height: 18px; object-fit: cover; border-radius: 3px; margin-right: 0.75rem; }
+        .analytics-item .country-flag { width: 24px; height: 18px; object-fit: cover; border-radius: 3px; margin-right: 0.75rem; font-style: normal; opacity: 1; }
         .analytics-item .country-name { flex-grow: 1; }
         .analytics-item .count { font-weight: 700; }
+
+        /* --- THE CRITICAL FLAG SIZE FIX --- */
+        /* This rule specifically targets flags in the compact request list */
+        .request-item .country-flag {
+            width: 20px;
+            height: 15px;
+            object-fit: cover;
+            border-radius: 2px;
+            flex-shrink: 0; /* Prevents squashing */
+            font-style: normal; /* Removes italics from '?' placeholder */
+            opacity: 1; /* Ensures '?' is fully visible */
+        }
         
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
@@ -197,4 +197,36 @@
                     <h2>Top Countries (Last 30 Days)</h2>
                     <div id="country-stats-list"></div>
                 </div>
-            </se
+            </section>
+            
+            <section class="card">
+                <h3>Download Mode</h3>
+                <div class="setting-toggle">
+                    <label for="redirect-toggle">Smart Redirect</label>
+                    <label class="switch">
+                        <input type="checkbox" id="redirect-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <p class="setting-desc">ON = Browser downloads directly (saves resources). OFF = Server streams download (more reliable).</p>
+            </section>
+            
+            <section class="card domain-management">
+                <h2>Blocked Domains</h2>
+                <form id="block-domain-form" class="admin-form">
+                    <input type="text" id="domain-input" class="form-input" placeholder="e.g., youtube.com" required>
+                    <button type="submit" class="admin-button primary">Block Domain</button>
+                </form>
+                <div id="blocked-domains-list"></div>
+            </section>
+            
+            <section class="card request-log">
+                <h2>Recent API Requests (Last 50)</h2>
+                <div id="requests-list"></div>
+            </section>
+        </div>
+    </div>
+    
+    <div id="toast-container"></div>
+</body>
+</html>
