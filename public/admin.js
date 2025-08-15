@@ -1,4 +1,4 @@
-// admin.js - The Final, Corrected Version for Consistent Flag Display
+// admin.js - The Final, Most Resilient Version
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
@@ -20,10 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const countryStatsList = document.getElementById('country-stats-list');
 
     let adminPassword = sessionStorage.getItem('admin_password');
-
-    // --- Create Resolvers Once for Efficiency ---
-    const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
-    const validCountryCodeRegex = /^[A-Z]{2}$/;
 
     // --- Toast Notification System ---
     const showAdminToast = (message, type = 'info') => {
@@ -67,10 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 endpoints.map(url => fetch(url, { headers }))
             );
 
+            // This logic processes each response individually for robust error handling.
             const jsonData = [];
             for (const res of responses) {
                 if (res.status === 401 || res.status === 403) {
-                    console.error("Authentication failed with status:", res.status, ". Forcing re-login.");
+                    console.error("Authentication failed. Forcing re-login.");
                     sessionStorage.removeItem('admin_password');
                     adminPassword = null;
                     if(loginError) {
@@ -79,25 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     return showLogin();
                 }
-
-                const contentType = res.headers.get("content-type");
-                const isJson = contentType && contentType.includes("application/json");
-
                 if (!res.ok) {
-                    let errorMessage = `Server returned status ${res.status}`;
-                    if (isJson) {
-                        const errorData = await res.json();
-                        errorMessage = errorData.error || JSON.stringify(errorData);
-                    } else {
-                        errorMessage = `Expected JSON but received ${contentType || 'an unknown format'}.`;
-                    }
-                    throw new Error(errorMessage);
+                    const errorData = await res.json().catch(() => ({ error: `Server returned status ${res.status}` }));
+                    throw new Error(errorData.error || `Server error with status ${res.status}`);
                 }
-            
-                if (!isJson) {
-                    throw new Error(`Expected JSON but received ${contentType || 'an unknown format'}.`);
-                }
-            
                 jsonData.push(await res.json());
             }
 
@@ -120,40 +102,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Data Rendering Functions ---
 
-    // CORRECTED: A single, robust helper function for country display.
+    // Create the country name resolver ONCE. If the API is not supported, create a dummy object.
+    const countryNameResolver = (() => {
+        try {
+            return new Intl.DisplayNames(['en'], { type: 'country' });
+        } catch (e) {
+            console.warn("Intl.DisplayNames API not supported, country names will not be displayed.");
+            return null; // The helper function will handle this null value.
+        }
+    })();
+    
+    // A single, reusable helper function for generating country display elements.
     function getCountryDisplay(countryCode) {
         let fullName = "Unknown Origin";
         let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
 
-        if (!countryCode) {
-            return { fullName, flagHtml };
-        }
-
-        const code = String(countryCode).toUpperCase().trim();
-
-        // The main check: If the code format is valid, we TRUST it and show a flag.
-        if (validCountryCodeRegex.test(code)) {
-            // Assume the code is valid and generate the flag HTML immediately.
-            // This fixes the bug where no flags were showing.
-            flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${code}">`;
-            
-            // Then, make a best effort to get the full name.
-            try {
-                const name = countryNameResolver.of(code);
-                // If the resolved name is valid and different, use it. Otherwise, just use the code.
-                fullName = (name && name !== code) ? name : code;
-                // Update the alt/title tags with the resolved name for accessibility.
-                flagHtml = flagHtml.replace(`alt="${code}"`, `alt="${fullName}" title="${fullName}"`);
-            } catch (e) {
-                // If Intl API fails, we still have the flag and can fall back to the code.
-                fullName = code; 
-                console.warn(`Intl.DisplayNames failed for code: ${code}`, e);
+        if (typeof countryCode === "string" && /^[A-Z]{2}$/.test(countryCode)) {
+            // Check if the resolver was created successfully and if it can resolve the name.
+            const name = countryNameResolver ? countryNameResolver.of(countryCode) : null;
+            if (name) {
+                fullName = name;
+                flagHtml = `<img class="country-flag" src="https://flagcdn.com/${countryCode.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
+            } else {
+                // This handles cases where the code is valid format but not a real country (e.g., "XX")
+                // or if the Intl API isn't supported.
+                fullName = `Valid Code (${countryCode})`;
+                // We still try to show a flag, as flagcdn might support it (e.g., for EU).
+                flagHtml = `<img class="country-flag" src="https://flagcdn.com/${countryCode.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
             }
-        } else {
-            // Only if the format itself is invalid do we call it an "Invalid Code".
-            fullName = `Invalid Code (${code})`;
+        } else if (countryCode) {
+            // Handles non-null but invalid format codes like "A12"
+            fullName = `Invalid Code (${countryCode})`;
         }
-
+        
         return { fullName, flagHtml };
     }
 
@@ -168,10 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'analytics-item';
             const date = new Date(day.request_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-            item.innerHTML = `
-                <span class="timestamp">${date}</span>
-                <span class="count">${day.request_count} requests</span>
-            `;
+            item.innerHTML = `<span class="timestamp">${date}</span><span class="count">${day.request_count} requests</span>`;
             dailyRequestsList.appendChild(item);
         });
     }
@@ -188,12 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'analytics-item';
             const { fullName, flagHtml } = getCountryDisplay(country.country_code);
-
-            item.innerHTML = `
-                ${flagHtml}
-                <span class="country-name">${fullName}</span>
-                <span class="count">${country.count}</span>
-            `;
+            item.innerHTML = `${flagHtml}<span class="country-name">${fullName}</span><span class="count">${country.count}</span>`;
             countryStatsList.appendChild(item);
         });
     }
@@ -208,9 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const item = document.createElement('div');
                 item.className = 'request-item';
                 const timestamp = new Date(req.timestamp).toLocaleString();
-                
                 const { flagHtml } = getCountryDisplay(req.country_code);
-                // Adjust flag size for the more compact log view
                 const sizedFlagHtml = flagHtml.replace('width:24px', 'width:20px');
                 
                 item.innerHTML = `
@@ -240,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!blockedDomainsList) return;
         const placeholder = blockedDomainsList.querySelector('p');
         if (placeholder) placeholder.remove();
-
         const item = document.createElement('div');
         item.className = 'request-item';
         item.dataset.domain = domain;
@@ -326,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!adminPassword || !domain) return;
             
             addDomainToList(domain);
-            const originalValue = domainInput.value;
             domainInput.value = '';
 
             try {
@@ -337,7 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAdminToast(`Failed to block domain "${domain}".`, 'error');
                 const itemToRemove = blockedDomainsList.querySelector(`div[data-domain="${domain}"]`);
                 if (itemToRemove) itemToRemove.remove();
-                domainInput.value = originalValue;
                 if (blockedDomainsList.children.length === 0) {
                     blockedDomainsList.innerHTML = '<p>No domains are currently blocked.</p>';
                 }
