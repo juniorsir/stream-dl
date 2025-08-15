@@ -140,6 +140,14 @@ document.addEventListener('DOMContentLoaded', () => {
             dailyRequestsList.appendChild(item);
         });
     }
+    function createCountryNameResolver() {
+        try {
+            return new Intl.DisplayNames(['en'], { type: 'country' });
+        } catch (e) {
+            console.error('Failed to create Intl.DisplayNames for country:', e);
+            return { of: () => null }; // dummy resolver
+        }
+    }
 
     // This is the bulletproof country code validation function.
     function renderCountryStats(countryData) {
@@ -150,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
+        const countryNameResolver = createCountryNameResolver();
         const validCountryCodeRegex = /^[A-Z]{2}$/;
 
         countryData.forEach(country => {
@@ -161,17 +169,13 @@ document.addEventListener('DOMContentLoaded', () => {
             let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
 
             if (typeof country.country_code === "string") {
-            const code = country.country_code.toUpperCase().trim();
+                const code = country.country_code.toUpperCase().trim();
                 if (validCountryCodeRegex.test(code)) {
-                    try {
-                        const name = countryNameResolver.of(code);
-                        if (name && name !== code) { // ensures it's actually mapped
-                            fullName = name;
-                            flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
-                        } else {
-                            fullName = `Invalid Code (${code})`;
-                        }
-                    } catch {
+                    const name = countryNameResolver.of(code);
+                    if (name && name !== code) {
+                        fullName = name;
+                        flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
+                    } else {
                         fullName = `Invalid Code (${code})`;
                     }
                 } else {
