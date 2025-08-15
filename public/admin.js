@@ -46,11 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchDashboardData();
     };
 
-    // --- NEW, MOST RESILIENT DATA FETCHING FUNCTION ---
+    // admin.js
+
+    // ... (keep all other code)
+
+    // --- THIS IS THE DEFINITIVE, MOST RESILIENT DATA FETCHING FUNCTION ---
     const fetchDashboardData = async () => {
         if (!adminPassword) return showLogin();
         const headers = { 'Authorization': `Bearer ${adminPassword}` };
-        
+    
         const endpoints = [
             '/api/admin/stats',
             '/api/admin/requests',
@@ -64,34 +68,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 endpoints.map(url => fetch(url, { headers }))
             );
 
-            // Check for ANY failed response first.
+            // This new logic block processes each response individually for better error handling.
+            const jsonData = [];
             for (const res of responses) {
+                // 1. Handle critical authentication failures first.
                 if (res.status === 401 || res.status === 403) {
-                    console.error("Authentication failed. Forcing re-login.");
+                    console.error("Authentication failed with status:", res.status, ". Forcing re-login.");
                     sessionStorage.removeItem('admin_password');
                     adminPassword = null;
                     if(loginError) {
                         loginError.textContent = "Your session has expired. Please log in again.";
                         loginError.classList.remove('hidden');
                     }
-                    return showLogin();
+                    return showLogin(); // Stop execution immediately.
                 }
 
                 const contentType = res.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    throw new Error(`Expected JSON but received ${contentType || 'an unknown format'}. This often means an authentication error occurred.`);
-                }
-                
+                const isJson = contentType && contentType.includes("application/json");
+
+                // 2. Handle non-OK responses (like 429 rate limit, 500 server error).
                 if (!res.ok) {
-                     const errorData = await res.json().catch(() => ({ error: `Server returned status ${res.status}` }));
-                     throw new Error(errorData.error);
+                    let errorMessage = `Server returned status ${res.status}`;
+                    // Only try to parse JSON if the server claims it's JSON.
+                    if (isJson) {
+                        const errorData = await res.json();
+                        errorMessage = errorData.error || JSON.stringify(errorData);
+                    } else {
+                        // If it's not JSON, it might be HTML or plain text.
+                        errorMessage = `Expected JSON but received ${contentType || 'an unknown format'}. This is often an auth or routing error.`;
+                    }
+                    // Throw an error that stops the entire process.
+                    throw new Error(errorMessage);
                 }
+            
+                // 3. Handle the case where the server sends an OK status but the wrong content type.
+                if (!isJson) {
+                    throw new Error(`Expected JSON but received ${contentType || 'an unknown format'}.`);
+                }
+            
+            // If all checks pass, parse the JSON and add it to our results array.
+                jsonData.push(await res.json());
             }
 
-            const [stats, requests, domains, settings, analytics] = await Promise.all(
-                responses.map(res => res.json())
-            );
-            
+            // Destructure the now-validated JSON data.
+            const [stats, requests, domains, settings, analytics] = jsonData;
+        
+            // Render the data
             if (cacheSizeEl) cacheSizeEl.textContent = stats.cacheSize;
             if (logSizeEl) logSizeEl.textContent = requests.length;
             if (redirectToggle) redirectToggle.checked = settings.is_redirect_mode_enabled;
@@ -106,8 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showAdminToast(`Failed to load dashboard data: ${error.message}`, 'error');
         }
     };
-
-
     function renderDailyStats(dailyData) {
         if (!dailyRequestsList) return;
         dailyRequestsList.innerHTML = '';
