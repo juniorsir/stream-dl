@@ -1,4 +1,4 @@
-// admin.js - The Final, Most Resilient and Performant Version
+// admin.js - The Final, Corrected Version for Consistent Flag Display
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
@@ -21,18 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let adminPassword = sessionStorage.getItem('admin_password');
 
-    // --- Create the Intl.DisplayNames resolver ONCE at the top level ---
-    // This is more efficient and reliable than creating it inside a loop.
-    let countryNameResolver;
-    try {
-        // Attempt to create the real resolver.
-        countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
-    } catch (e) {
-        // If the browser is old and doesn't support it, create a dummy object.
-        console.error('Intl.DisplayNames API not supported, falling back to dummy resolver.');
-        // The dummy resolver will just return the original code, triggering our validation.
-        countryNameResolver = { of: (code) => code };
-    }
+    // --- Create Resolvers Once for Efficiency ---
+    const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
+    const validCountryCodeRegex = /^[A-Z]{2}$/;
 
     // --- Toast Notification System ---
     const showAdminToast = (message, type = 'info') => {
@@ -76,10 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 endpoints.map(url => fetch(url, { headers }))
             );
 
-            // This logic processes each response individually for robust error handling.
             const jsonData = [];
             for (const res of responses) {
-                // 1. Handle critical authentication failures first.
                 if (res.status === 401 || res.status === 403) {
                     console.error("Authentication failed with status:", res.status, ". Forcing re-login.");
                     sessionStorage.removeItem('admin_password');
@@ -88,13 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         loginError.textContent = "Your session has expired. Please log in again.";
                         loginError.classList.remove('hidden');
                     }
-                    return showLogin(); // Stop execution immediately.
+                    return showLogin();
                 }
 
                 const contentType = res.headers.get("content-type");
                 const isJson = contentType && contentType.includes("application/json");
 
-                // 2. Handle non-OK responses (like 429 rate limit, 500 server error).
                 if (!res.ok) {
                     let errorMessage = `Server returned status ${res.status}`;
                     if (isJson) {
@@ -106,19 +94,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errorMessage);
                 }
             
-                // 3. Handle cases where the server sends an OK status but the wrong content type.
                 if (!isJson) {
                     throw new Error(`Expected JSON but received ${contentType || 'an unknown format'}.`);
                 }
             
-                // If all checks pass, parse the JSON and add it to our results array.
                 jsonData.push(await res.json());
             }
 
-            // Destructure the now-validated JSON data.
             const [stats, requests, domains, settings, analytics] = jsonData;
         
-            // Render all the data to the dashboard
             if (cacheSizeEl) cacheSizeEl.textContent = stats.cacheSize;
             if (logSizeEl) logSizeEl.textContent = requests.length;
             if (redirectToggle) redirectToggle.checked = settings.is_redirect_mode_enabled;
@@ -136,31 +120,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Data Rendering Functions ---
 
-    // A single, reusable helper function using the pre-built resolver.
+    // CORRECTED: A single, robust helper function for country display.
     function getCountryDisplay(countryCode) {
         let fullName = "Unknown Origin";
         let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
 
-        if (typeof countryCode === "string") {
-            const code = countryCode.toUpperCase().trim();
-            const validCountryCodeRegex = /^[A-Z]{2}$/;
-            
-            if (validCountryCodeRegex.test(code)) {
-                // Use the pre-built resolver for efficiency and reliability.
-                const name = countryNameResolver.of(code);
-                
-                // The key check: Is the name valid and different from the code itself?
-                if (name && name !== code) {
-                    fullName = name;
-                    flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
-                } else {
-                    fullName = `Invalid Code (${code})`;
-                }
-            } else if (code) { // Handle non-empty but invalid format codes like "A12"
-                fullName = `Invalid Code (${code})`;
-            }
+        if (!countryCode) {
+            return { fullName, flagHtml };
         }
-        
+
+        const code = String(countryCode).toUpperCase().trim();
+
+        // The main check: If the code format is valid, we TRUST it and show a flag.
+        if (validCountryCodeRegex.test(code)) {
+            // Assume the code is valid and generate the flag HTML immediately.
+            // This fixes the bug where no flags were showing.
+            flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${code}">`;
+            
+            // Then, make a best effort to get the full name.
+            try {
+                const name = countryNameResolver.of(code);
+                // If the resolved name is valid and different, use it. Otherwise, just use the code.
+                fullName = (name && name !== code) ? name : code;
+                // Update the alt/title tags with the resolved name for accessibility.
+                flagHtml = flagHtml.replace(`alt="${code}"`, `alt="${fullName}" title="${fullName}"`);
+            } catch (e) {
+                // If Intl API fails, we still have the flag and can fall back to the code.
+                fullName = code; 
+                console.warn(`Intl.DisplayNames failed for code: ${code}`, e);
+            }
+        } else {
+            // Only if the format itself is invalid do we call it an "Invalid Code".
+            fullName = `Invalid Code (${code})`;
+        }
+
         return { fullName, flagHtml };
     }
 
