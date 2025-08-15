@@ -122,6 +122,38 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Data Rendering Functions ---
+
+    // A single, reusable helper function for generating country display elements.
+    // This ensures consistent validation and rendering logic everywhere.
+    function getCountryDisplay(countryCode) {
+        let fullName = "Unknown Origin";
+        let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
+
+        if (typeof countryCode === "string") {
+            const code = countryCode.toUpperCase().trim();
+            const validCountryCodeRegex = /^[A-Z]{2}$/;
+            
+            if (validCountryCodeRegex.test(code)) {
+                try {
+                    const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
+                    const name = countryNameResolver.of(code);
+                    if (name && name !== code) {
+                        fullName = name;
+                        flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
+                    } else {
+                        fullName = `Invalid Code (${code})`;
+                    }
+                } catch (e) {
+                     fullName = `Invalid Code (${code})`;
+                }
+            } else if (code) { // Handle non-empty but invalid codes like "A12"
+                fullName = `Invalid Code (${code})`;
+            }
+        }
+        
+        return { fullName, flagHtml };
+    }
+
     function renderDailyStats(dailyData) {
         if (!dailyRequestsList) return;
         dailyRequestsList.innerHTML = '';
@@ -140,16 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dailyRequestsList.appendChild(item);
         });
     }
-    function createCountryNameResolver() {
-        try {
-            return new Intl.DisplayNames(['en'], { type: 'country' });
-        } catch (e) {
-            console.error('Failed to create Intl.DisplayNames for country:', e);
-            return { of: () => null }; // dummy resolver
-        }
-    }
 
-    // This is the bulletproof country code validation function.
     function renderCountryStats(countryData) {
         if (!countryStatsList) return;
         countryStatsList.innerHTML = '';
@@ -157,31 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
             countryStatsList.innerHTML = '<p>No country data from the last 30 days.</p>';
             return;
         }
-
-        const countryNameResolver = createCountryNameResolver();
-        const validCountryCodeRegex = /^[A-Z]{2}$/;
-
+        
         countryData.forEach(country => {
             const item = document.createElement('div');
             item.className = 'analytics-item';
-
-            let fullName = "Unknown Origin";
-            let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
-
-            if (typeof country.country_code === "string") {
-                const code = country.country_code.toUpperCase().trim();
-                if (validCountryCodeRegex.test(code)) {
-                    const name = countryNameResolver.of(code);
-                    if (name && name !== code) {
-                        fullName = name;
-                        flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
-                    } else {
-                        fullName = `Invalid Code (${code})`;
-                    }
-                } else {
-                    fullName = `Invalid Code (${code})`;
-                }
-            }
+            const { fullName, flagHtml } = getCountryDisplay(country.country_code);
 
             item.innerHTML = `
                 ${flagHtml}
@@ -191,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
             countryStatsList.appendChild(item);
         });
     }
+
     function renderRequestLogs(requests) {
         if (!requestsList) return;
         requestsList.innerHTML = '';
@@ -201,12 +205,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const item = document.createElement('div');
                 item.className = 'request-item';
                 const timestamp = new Date(req.timestamp).toLocaleString();
-                const countryFlag = req.country_code && /^[A-Z]{2}$/.test(req.country_code)
-                    ? `<img src="https://flagcdn.com/${req.country_code.toLowerCase()}.svg" width="20" class="country-flag" title="${req.country_code}">`
-                    : `<span class="country-flag" style="display: inline-block; width: 20px;"></span>`;
+                
+                const { flagHtml } = getCountryDisplay(req.country_code);
+                // Adjust flag size for the more compact log view
+                const sizedFlagHtml = flagHtml.replace('width:24px', 'width:20px');
                 
                 item.innerHTML = `
-                    ${countryFlag}
+                    ${sizedFlagHtml}
                     <span class="timestamp">${timestamp}</span>
                     <span class="url" title="${req.url}">${req.url}</span>
                     <button class="request-copy-btn" data-url="${req.url}" title="Copy URL">
