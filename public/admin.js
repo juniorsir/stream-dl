@@ -1,5 +1,6 @@
-// admin.js - Complete version with Bulletproof Analytics Rendering
-console.log("Admin JS v4 - Definitive Fix Loaded. If you see this, the code is new.");
+// admin.js - The Final, Most Resilient Version
+console.log("Admin JS v5 - Combined Fixes Loaded. This is the definitive version.");
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
     const loginContainer = document.getElementById('login-container');
@@ -45,38 +46,52 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchDashboardData();
     };
 
-    // --- Data Fetching and Rendering ---
+    // --- NEW, MOST RESILIENT DATA FETCHING FUNCTION ---
     const fetchDashboardData = async () => {
         if (!adminPassword) return showLogin();
         const headers = { 'Authorization': `Bearer ${adminPassword}` };
+        
+        const endpoints = [
+            '/api/admin/stats',
+            '/api/admin/requests',
+            '/api/admin/blocked-domains',
+            '/api/admin/settings',
+            '/api/admin/analytics'
+        ];
+
         try {
-            const responses = await Promise.all([
-                fetch('/api/admin/stats', { headers }),
-                fetch('/api/admin/requests', { headers }),
-                fetch('/api/admin/blocked-domains', { headers }),
-                fetch('/api/admin/settings', { headers }),
-                fetch('/api/admin/analytics', { headers })
-            ]);
+            const responses = await Promise.all(
+                endpoints.map(url => fetch(url, { headers }))
+            );
 
-            const unauthorizedResponse = responses.find(res => res.status === 401);
-            if (unauthorizedResponse) {
-                sessionStorage.removeItem('admin_password');
-                adminPassword = null;
-                if(loginError) {
-                    loginError.textContent = "Your session has expired. Please log in again.";
-                    loginError.classList.remove('hidden');
+            // Check for ANY failed response first.
+            for (const res of responses) {
+                if (res.status === 401 || res.status === 403) {
+                    console.error("Authentication failed. Forcing re-login.");
+                    sessionStorage.removeItem('admin_password');
+                    adminPassword = null;
+                    if(loginError) {
+                        loginError.textContent = "Your session has expired. Please log in again.";
+                        loginError.classList.remove('hidden');
+                    }
+                    return showLogin();
                 }
-                return showLogin();
+
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error(`Expected JSON but received ${contentType || 'an unknown format'}. This often means an authentication error occurred.`);
+                }
+                
+                if (!res.ok) {
+                     const errorData = await res.json().catch(() => ({ error: `Server returned status ${res.status}` }));
+                     throw new Error(errorData.error);
+                }
             }
 
-            const failedResponse = responses.find(res => !res.ok);
-            if (failedResponse) {
-                const errorData = await failedResponse.json().catch(() => ({ error: 'An unknown server error occurred.' }));
-                throw new Error(errorData.error);
-            }
-
-            const [stats, requests, domains, settings, analytics] = await Promise.all(responses.map(res => res.json()));
-
+            const [stats, requests, domains, settings, analytics] = await Promise.all(
+                responses.map(res => res.json())
+            );
+            
             if (cacheSizeEl) cacheSizeEl.textContent = stats.cacheSize;
             if (logSizeEl) logSizeEl.textContent = requests.length;
             if (redirectToggle) redirectToggle.checked = settings.is_redirect_mode_enabled;
@@ -91,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showAdminToast(`Failed to load dashboard data: ${error.message}`, 'error');
         }
     };
+
 
     function renderDailyStats(dailyData) {
         if (!dailyRequestsList) return;
@@ -111,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- THIS IS THE DEFINITIVE FIX ---
+    // --- THIS IS THE BULLETPROOF COUNTRY CODE VALIDATION ---
     function renderCountryStats(countryData) {
         if (!countryStatsList) return;
         countryStatsList.innerHTML = '';
@@ -121,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
-        // This regex ensures the code is a valid two-letter uppercase string.
         const validCountryCodeRegex = /^[A-Z]{2}$/;
         
         countryData.forEach(country => {
@@ -131,21 +146,17 @@ document.addEventListener('DOMContentLoaded', () => {
             let fullName = "Unknown Origin";
             let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`;
 
-            // Proactively validate the code format before using the API
             if (country.country_code && validCountryCodeRegex.test(country.country_code)) {
                 try {
                     fullName = countryNameResolver.of(country.country_code);
                     flagHtml = `<img class="country-flag" src="https://flagcdn.com/${country.country_code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
                 } catch (e) {
-                    // This is a safety net for rare cases where a valid-looking code is rejected
                     fullName = `Invalid Code (${country.country_code})`;
                     console.warn(`Intl API rejected a seemingly valid code: ${country.country_code}`);
                 }
             } else if (country.country_code) {
-                // This handles non-null but invalid codes like "A1", "XX", etc.
                 fullName = `Invalid Code (${country.country_code})`;
             }
-            // If country_code is null, the default "Unknown Origin" values are used.
 
             item.innerHTML = `
                 ${flagHtml}
@@ -166,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const item = document.createElement('div');
                 item.className = 'request-item';
                 const timestamp = new Date(req.timestamp).toLocaleString();
-                const countryFlag = req.country_code
+                const countryFlag = req.country_code && /^[A-Z]{2}$/.test(req.country_code)
                     ? `<img src="https://flagcdn.com/${req.country_code.toLowerCase()}.svg" width="20" class="country-flag" title="${req.country_code}">`
                     : `<span class="country-flag" style="display: inline-block; width: 20px;"></span>`;
                 
@@ -175,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="timestamp">${timestamp}</span>
                     <span class="url" title="${req.url}">${req.url}</span>
                     <button class="request-copy-btn" data-url="${req.url}" title="Copy URL">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                     </button>
                 `;
                 requestsList.appendChild(item);
