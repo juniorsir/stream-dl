@@ -129,13 +129,12 @@ router.get('/admin/requests', verifyAdmin, async (req, res) => {
     }
 });
 
-// NEW: Analytics endpoint to calculate and return daily and country stats
-router.get('/admin/analytics', verifyAdmin, async (req, res, next) => {
+// NEW: Analytics endpoint with bulletproof data sanitization
+router.get('/api/admin/analytics', verifyAdmin, async (req, res, next) => {
     if (!process.env.DATABASE_URL) {
         return res.json({ dailyCounts: [], countryCounts: [] });
     }
     try {
-        // Fetch daily counts for the last 30 days
         const dailyQuery = `
             SELECT DATE(timestamp) as request_date, COUNT(*) as request_count 
             FROM request_logs
@@ -144,11 +143,10 @@ router.get('/admin/analytics', verifyAdmin, async (req, res, next) => {
             ORDER BY request_date DESC;
         `;
         
-        // Fetch top 10 country counts for the last 30 days
         const countryQuery = `
             SELECT country_code, COUNT(*) as count 
             FROM request_logs 
-            WHERE country_code IS NOT NULL AND timestamp > NOW() - INTERVAL '30 days'
+            WHERE timestamp > NOW() - INTERVAL '30 days'
             GROUP BY country_code 
             ORDER BY count DESC 
             LIMIT 10;
@@ -159,12 +157,22 @@ router.get('/admin/analytics', verifyAdmin, async (req, res, next) => {
             pool.query(countryQuery)
         ]);
 
+        // --- THE FINAL FAILSAFE IS HERE ---
+        // Proactively validate and filter the data before sending it.
+        const validCountryCodeRegex = /^[A-Z]{2}$/;
+        const sanitizedCountryCounts = countryResult.rows.filter(row => {
+            // Keep rows that are either null OR have a valid 2-letter format.
+            // This explicitly throws away junk data like 'A1', 'XX', '', etc.
+            return row.country_code === null || validCountryCodeRegex.test(row.country_code);
+        });
+        // --- END OF FAILSAFE ---
+
         res.json({
             dailyCounts: dailyResult.rows,
-            countryCounts: countryResult.rows
+            countryCounts: sanitizedCountryCounts // Send the cleaned data
         });
     } catch (err) {
-        next(err); // Pass error to global error handler
+        next(err);
     }
 });
 
