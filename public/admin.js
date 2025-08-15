@@ -1,5 +1,4 @@
 // admin.js - The Final, Most Resilient Version
-console.log("Admin JS v5 - Combined Fixes Loaded. This is the definitive version.");
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
@@ -46,11 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchDashboardData();
     };
 
-    // admin.js
-
-    // ... (keep all other code)
-
-    // --- THIS IS THE DEFINITIVE, MOST RESILIENT DATA FETCHING FUNCTION ---
+    // --- Definitive, Resilient Data Fetching Function ---
     const fetchDashboardData = async () => {
         if (!adminPassword) return showLogin();
         const headers = { 'Authorization': `Bearer ${adminPassword}` };
@@ -68,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 endpoints.map(url => fetch(url, { headers }))
             );
 
-            // This new logic block processes each response individually for better error handling.
+            // This logic processes each response individually for robust error handling.
             const jsonData = [];
             for (const res of responses) {
                 // 1. Handle critical authentication failures first.
@@ -89,31 +84,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 2. Handle non-OK responses (like 429 rate limit, 500 server error).
                 if (!res.ok) {
                     let errorMessage = `Server returned status ${res.status}`;
-                    // Only try to parse JSON if the server claims it's JSON.
                     if (isJson) {
                         const errorData = await res.json();
                         errorMessage = errorData.error || JSON.stringify(errorData);
                     } else {
-                        // If it's not JSON, it might be HTML or plain text.
-                        errorMessage = `Expected JSON but received ${contentType || 'an unknown format'}. This is often an auth or routing error.`;
+                        errorMessage = `Expected JSON but received ${contentType || 'an unknown format'}.`;
                     }
-                    // Throw an error that stops the entire process.
                     throw new Error(errorMessage);
                 }
             
-                // 3. Handle the case where the server sends an OK status but the wrong content type.
+                // 3. Handle cases where the server sends an OK status but the wrong content type.
                 if (!isJson) {
                     throw new Error(`Expected JSON but received ${contentType || 'an unknown format'}.`);
                 }
             
-            // If all checks pass, parse the JSON and add it to our results array.
+                // If all checks pass, parse the JSON and add it to our results array.
                 jsonData.push(await res.json());
             }
 
             // Destructure the now-validated JSON data.
             const [stats, requests, domains, settings, analytics] = jsonData;
         
-            // Render the data
+            // Render all the data to the dashboard
             if (cacheSizeEl) cacheSizeEl.textContent = stats.cacheSize;
             if (logSizeEl) logSizeEl.textContent = requests.length;
             if (redirectToggle) redirectToggle.checked = settings.is_redirect_mode_enabled;
@@ -128,6 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
             showAdminToast(`Failed to load dashboard data: ${error.message}`, 'error');
         }
     };
+
+    // --- Data Rendering Functions ---
     function renderDailyStats(dailyData) {
         if (!dailyRequestsList) return;
         dailyRequestsList.innerHTML = '';
@@ -147,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- THIS IS THE BULLETPROOF COUNTRY CODE VALIDATION ---
+    // This is the bulletproof country code validation function.
     function renderCountryStats(countryData) {
         if (!countryStatsList) return;
         countryStatsList.innerHTML = '';
@@ -166,177 +160,18 @@ document.addEventListener('DOMContentLoaded', () => {
             let fullName = "Unknown Origin";
             let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`;
 
-            m Separate
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-ThinkingThoughts
-(experimental)
-Auto
-Expand to view model thoughts
-
-chevron_right
-This is a fantastic catch, and you've pinpointed a classic edge case that happens when moving from development to production. The error message is extremely specific and tells us exactly what's wrong.
-The Diagnosis
-The Error: Value country out of range for Intl.DisplayNames options property type
-The Cause: The JavaScript API Intl.DisplayNames, which you are using in admin.js to turn a country code like "US" into "United States", was given a value that it doesn't recognize as a valid country.
-The Culprit: This almost certainly happens when your geoip-lite library on the backend encounters an IP address it cannot identify (like a local network IP, a VPN, or a system process). In these cases, it correctly returns null. Your database stores this null value, and your analytics API sends it to the frontend. Your frontend code then tries to run Intl.DisplayNames.of(null), which causes it to crash.
-Even though we added validation, it seems a specific case is still getting through. The solution is to make the frontend code even more "bulletproof" by adding layers of validation to gracefully handle any invalid data the backend might send.
-The Solution: Make admin.js More Resilient
-We need to update the renderCountryStats function in admin.js to be more defensive. It needs to check for null values and also validate the format of the country code before trying to use it.
-Replace the renderCountryStats function in your admin.js file with this new, more robust version.
-code
-JavaScript
-// admin.js
-
-// ... (keep all other code the same) ...
-
-// --- THIS IS THE BULLETPROOF COUNTRY CODE VALIDATION FUNCTION ---
-function renderCountryStats(countryData) {
-    if (!countryStatsList) return;
-    countryStatsList.innerHTML = '';
-    if (!countryData || countryData.length === 0) {
-        countryStatsList.innerHTML = '<p>No country data from the last 30 days.</p>';
-        return;
-    }
-    
-    // Create the Intl.DisplayNames object once for efficiency
-    const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
-    // A regular expression to ensure the code is two uppercase letters.
-    const validCountryCodeRegex = /^[A-Z]{2}$/;
-    
-    countryData.forEach(country => {
-        const item = document.createElement('div');
-        item.className = 'analytics-item';
-        
-        let fullName = "Unknown Origin";
-        let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`; // Default placeholder
-
-            // --- THE FIX IS HERE (Layered Validation) ---
-    
-            // 1. First, check if the country_code exists and is a valid 2-letter string.
             if (country.country_code && validCountryCodeRegex.test(country.country_code)) {
                 try {
-                    // 2. If it's valid, try to get the full name. This catches non-standard codes like "XX".
                     fullName = countryNameResolver.of(country.country_code);
                     flagHtml = `<img class="country-flag" src="https://flagcdn.com/${country.country_code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
                 } catch (e) {
-                    // 3. If the API fails, it's a validly formatted but non-existent code.
                     fullName = `Invalid Code (${country.country_code})`;
                     console.warn(`Intl API rejected a seemingly valid code: ${country.country_code}`);
                 }
             } else if (country.country_code) {
-                // 4. If the code exists but didn't pass the regex, it's malformed.
+                // Handles non-null but invalid format codes
                 fullName = `Invalid Code (${country.country_code})`;
             }
-            // 5. If country.country_code is null or undefined, the default "Unknown Origin" is used.
-
-            // --- END OF FIX ---
 
             item.innerHTML = `
                 ${flagHtml}
@@ -366,7 +201,7 @@ function renderCountryStats(countryData) {
                     <span class="timestamp">${timestamp}</span>
                     <span class="url" title="${req.url}">${req.url}</span>
                     <button class="request-copy-btn" data-url="${req.url}" title="Copy URL">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                     </button>
                 `;
                 requestsList.appendChild(item);
