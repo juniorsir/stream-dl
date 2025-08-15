@@ -1,4 +1,4 @@
-// admin.js - The Final, Corrected Version
+// admin.js - The Final, Complete, and Resilient Version
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
@@ -109,20 +109,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     })();
     
+    // A single, reusable helper function for generating country display elements.
     function getCountryDisplay(countryCode) {
         let fullName = "Unknown Origin";
         let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
 
         if (typeof countryCode === "string" && /^[A-Z]{2}$/.test(countryCode)) {
             const name = countryNameResolver ? countryNameResolver.of(countryCode) : null;
+            // The key check: Is the resolved name valid and different from the code itself?
             if (name && name !== countryCode) {
                 fullName = name;
                 flagHtml = `<img class="country-flag" src="https://flagcdn.com/${countryCode.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
             } else {
+                // This handles cases where the code is valid format but not a real country (e.g., "XX")
+                // or if the Intl API isn't supported.
                 fullName = `Valid Code (${countryCode})`;
                 flagHtml = `<img class="country-flag" src="https://flagcdn.com/${countryCode.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
             }
         } else if (countryCode) {
+            // Handles non-null but invalid format codes like "A12"
             fullName = `Invalid Code (${countryCode})`;
         }
         
@@ -162,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- THIS FUNCTION IS NOW CLEANED UP ---
     function renderRequestLogs(requests) {
         if (!requestsList) return;
         requestsList.innerHTML = '';
@@ -174,8 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.className = 'request-item';
                 const timestamp = new Date(req.timestamp).toLocaleString();
                 
-                // Get the consistent flag HTML. No more resizing with .replace()!
-                // The new CSS rule in admin.html will handle the sizing.
+                // Use the helper function. Sizing is now handled purely by CSS.
                 const { flagHtml } = getCountryDisplay(req.country_code);
                 
                 item.innerHTML = `
@@ -212,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
         blockedDomainsList.appendChild(item);
     }
 
-    // --- Event Listeners (Unchanged) ---
+    // --- Event Listeners ---
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
