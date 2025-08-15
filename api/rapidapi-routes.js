@@ -16,6 +16,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 const ytDlpPath = isProduction ? path.join(projectRoot, 'bin', 'yt-dlp') : 'yt-dlp';
 const cookiesPath = path.join(projectRoot, 'cookies.txt');
 
+const MAX_DURATION_BASIC_PLAN = parseInt(process.env.MAX_DURATION_BASIC_PLAN) || 600; // 10 minutes (in seconds)
+const MAX_DURATION_PRO_PLAN = parseInt(process.env.MAX_DURATION_PRO_PLAN) || 3600;
 // --- Helper Functions ---
 const parseYtdlpError = (stderr) => { if (!stderr) return 'An unknown error occurred.'; if (stderr.includes('private video')) return 'This video is private.'; if (stderr.includes('Sign in to confirm')) return 'This video requires login. Cookies may be needed.'; if (stderr.includes('Unsupported URL')) return 'This website or URL is not supported.'; if (stderr.includes('404')) return 'Video not found (404).'; if (stderr.includes('KeyError')) return 'This site has changed its structure.'; const errorLines = stderr.trim().split('\n').filter(line => line.trim() !== ''); const specificError = errorLines.pop(); return specificError ? `yt-dlp ERROR: ${specificError}` : 'An unknown error occurred.'; };
 
@@ -62,13 +64,27 @@ router.post('/get-data', verifyRapidAPI, async (req, res, next) => {
                 // Parse and format the data just like in your original routes.js
                 const info = JSON.parse(output);
                 const duration = info.duration || 0;
+                const subscription = req.get('X-RapidAPI-Subscription') || 'BASIC'; // Default to BASIC if header is missing
+                const allowMerging = subscription.toUpperCase() !== 'BASIC'; // Only paid plans can merge
+                console.log(`[ACCESS_CONTROL] User: ${rapidApiUser}, Plan: ${subscription}, Duration: ${duration}s, Merging Allowed: ${allowMerging}`);
+                if (subscription.toUpperCase() === 'BASIC' && duration > MAX_DURATION_BASIC_PLAN) {
+                    return res.status(403).json({ error: `Forbidden. Your plan (BASIC) is limited to videos under ${MAX_DURATION_BASIC_PLAN / 60} minutes. This video is ~${Math.round(duration / 60)} minutes.` });
+                }
+                if (subscription.toUpperCase() !== 'BASIC' && duration > MAX_DURATION_PRO_PLAN) {
+                    return res.status(403).json({ error: `Forbidden. Your plan is limited to videos under ${MAX_DURATION_PRO_PLAN / 60} minutes. This video is ~${Math.round(duration / 60)} minutes.` });
+                }
+                
                 const formats = (info.formats || []).map(f => {
+                    if (!allowMerging && f.vcodec !== 'none' && f.acodec === 'none') {
+                            return null;
+                    }
                     let filesize = f.filesize || f.filesize_approx;
                     if (!filesize && f.tbr && duration > 0) { filesize = (f.tbr * 1000 / 8) * duration; }
                     let filesize_str = "N/A";
                     if (filesize) { const size_mib = filesize / (1024 * 1024); if (size_mib >= 1000) { filesize_str = `${(size_mib / 1024).toFixed(2)} GiB`; } else { filesize_str = `${size_mib.toFixed(1)} MiB`; } }
                     return { format_id: f.format_id, ext: f.ext, resolution: f.resolution || (f.height ? `${f.height}p` : "audio only"), filesize: filesize_str, vcodec: f.vcodec || 'none', acodec: f.acodec || 'none' };
                 }).filter(f => f.format_id);
+                .filter(Boolean);
 
                 const responseData = { title: info.title, thumbnail: info.thumbnail, formats: formats };
                 cache.set(cacheKey, responseData);
