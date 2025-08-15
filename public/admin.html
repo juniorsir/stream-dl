@@ -4,29 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapStream - Admin Dashboard</title>
+    <!-- Link to the main stylesheet to inherit all the base styles and variables -->
     <link rel="stylesheet" href="style.css">
     <style>
-        /* ... existing admin styles ... */
-        body { background: var(--container-bg); justify-content: center; align-items: center; padding: 2rem; min-height: 100vh; }
-        .admin-container { width: 100%; max-width: 900px; }
-        #login-container, #dashboard-container { background-color: var(--card-bg); padding: 2.5rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); }
-        .admin-title-group { display: flex; align-items: center; gap: 1rem; }
-        .admin-title-group h1 { font-size: 1.75rem; color: var(--text-primary); }
-        .admin-title-group .logo-icon { color: var(--accent-color); width: 32px; height: 32px; }
-        .admin-form { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
-        .admin-form input { flex-grow: 1; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: var(--container-bg); color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s; }
-        .admin-form input:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 20%, transparent); }
-        .admin-button { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        /* Admin-specific styles that build upon the main style.css */
+        body {
+            background: var(--container-bg);
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .admin-container {
+            width: 100%;
+            max-width: 900px;
+        }
+        
+        #login-container, #dashboard-container {
+            background-color: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .admin-title-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-title-group h1 {
+            font-size: 1.75rem;
+            color: var(--text-primary);
+        }
+
+        .admin-title-group .logo-icon {
+            color: var(--accent-color);
+            width: 32px;
+            height: 32px;
+        }
+
+        /* Form Styling */
+        .admin-form {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .admin-form input {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: var(--container-bg);
+            color: var(--text-primary);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .admin-form input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 20%, transparent);
+        }
+        
+        .admin-button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
         .admin-button.primary { background-color: var(--accent-color); color: white; }
         .admin-button.primary:hover { background-color: var(--accent-hover); }
         .admin-button.danger { background-color: #dc3545; color: white; }
         .admin-button.danger:hover { background-color: #c82333; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+
+        /* Grid and Card Styling */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
         .card h3 { color: var(--text-secondary); text-transform: uppercase; font-size: 0.9rem; margin-bottom: 0.5rem; }
         .card p { color: var(--text-primary); font-size: 1.5rem; font-weight: 500; }
         .card .action-button { background-color: var(--border-color); color: var(--text-primary); }
         .card .action-button:hover { background-color: color-mix(in srgb, var(--border-color) 80%, white); }
+        
+        /* Setting Toggle (Switch) */
         .setting-toggle { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
         .setting-desc { font-size: 0.85rem !important; color: var(--text-secondary) !important; margin-top: 0.5rem; }
         .switch { position: relative; display: inline-block; width: 50px; height: 28px; flex-shrink: 0; }
@@ -35,6 +115,8 @@
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--accent-color); }
         input:checked + .slider:before { transform: translateX(22px); }
+
+        /* List Styling (Logs, Domains, Analytics) */
         .request-log, .domain-management, .analytics-section { margin-top: 1.5rem; }
         .request-log h2, .domain-management h2, .analytics-section h2 { font-size: 1.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;}
         .request-item, .analytics-item { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background-color: var(--container-bg); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 0.5rem; gap: 1rem; }
@@ -44,12 +126,22 @@
         .request-item .remove-btn, .request-item .request-copy-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0.25rem; }
         .request-item .remove-btn:hover, .request-item .request-copy-btn:hover { color: var(--text-primary); }
 
-        /* NEW: Analytics specific styles */
+        /* --- THIS IS THE FIX FOR THE LARGE FLAG BUG --- */
+        .request-item .country-flag {
+            width: 20px;
+            height: 15px; /* Maintain aspect ratio */
+            object-fit: cover;
+            border-radius: 2px;
+            flex-shrink: 0; /* Prevent the flag from shrinking */
+        }
+
+        /* Analytics specific styles */
         .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
         .analytics-item .country-flag { width: 24px; height: 18px; object-fit: cover; border-radius: 3px; margin-right: 0.75rem; }
         .analytics-item .country-name { flex-grow: 1; }
         .analytics-item .count { font-weight: 700; }
         
+        /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             body { padding: 1rem; align-items: flex-start; }
             #login-container, #dashboard-container { padding: 1.5rem; }
@@ -96,7 +188,6 @@
                 <div class="card"><h3>Actions</h3><button id="clear-cache-btn" class="admin-button action-button">Clear Cache</button></div>
             </section>
             
-            <!-- NEW: Analytics Section -->
             <section class="analytics-grid">
                 <div class="card analytics-section">
                     <h2>Requests per Day (Last 30)</h2>
@@ -106,29 +197,4 @@
                     <h2>Top Countries (Last 30 Days)</h2>
                     <div id="country-stats-list"></div>
                 </div>
-            </section>
-            <!-- END: Analytics Section -->
-
-            <section class="card">
-                <h3>Download Mode</h3>
-                <div class="setting-toggle"><label for="redirect-toggle">Smart Redirect</label><label class="switch"><input type="checkbox" id="redirect-toggle"><span class="slider"></span></label></div>
-                <p class="setting-desc">ON = Browser downloads directly (saves resources). OFF = Server streams download (more reliable).</p>
-            </section>
-            
-            <section class="card domain-management">
-                <h2>Blocked Domains</h2>
-                <form id="block-domain-form" class="admin-form"><input type="text" id="domain-input" class="form-input" placeholder="e.g., youtube.com" required><button type="submit" class="admin-button primary">Block Domain</button></form>
-                <div id="blocked-domains-list"></div>
-            </section>
-            
-            <section class="card request-log">
-                <h2>Recent API Requests (Last 50)</h2>
-                <div id="requests-list"></div>
-            </section>
-        </div>
-    </div>
-    
-    <div id="toast-container"></div>
-    <script src="admin.js"></script>
-</body>
-</html>
+            </se
