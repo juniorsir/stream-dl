@@ -1,5 +1,5 @@
 // admin.js - Complete version with Bulletproof Analytics Rendering
-
+console.log("Admin JS v4 - Definitive Fix Loaded. If you see this, the code is new.");
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
     const loginContainer = document.getElementById('login-container');
