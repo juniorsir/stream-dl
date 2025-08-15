@@ -62,14 +62,7 @@ app.use(cors()); // Enable Cross-Origin Resource Sharing for all routes.
 app.use(express.json()); // Enable the express app to parse JSON formatted request bodies.
 app.use(express.static(path.join(projectRoot, 'public'))); // Serve static files (HTML, CSS, JS) from the 'public' directory.
 
-const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // Limit each IP to 50 requests per window (adjust as needed)
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    message: { error: 'Too many requests, please try again after 15 minutes.' },
-    // Tell express-rate-limit to trust the x-forwarded-for header set by Render
-});
+
 
 // --- Route Handling ---
 app.use('/api', apiLimiter, apiRoutes); // All API logic is handled by routes.js, prefixed with /api.
@@ -86,7 +79,14 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(projectRoot, 'public', 'index.html'));
 });
 
-
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200, // Limit each IP to 50 requests per window (adjust as needed)
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: { error: 'Too many requests, please try again after 15 minutes.' },
+    // Tell express-rate-limit to trust the x-forwarded-for header set by Render
+});
 // --- Global Error Handling Middleware ---
 // This is the final safety net. It catches any unhandled errors from other routes.
 // It MUST be the last `app.use()` call before `app.listen`.
