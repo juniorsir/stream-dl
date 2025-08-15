@@ -1,4 +1,4 @@
-// admin.js - The Final, Most Resilient Version
+// admin.js - The Final, Corrected Version
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
@@ -63,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 endpoints.map(url => fetch(url, { headers }))
             );
 
-            // This logic processes each response individually for robust error handling.
             const jsonData = [];
             for (const res of responses) {
                 if (res.status === 401 || res.status === 403) {
@@ -101,37 +100,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Data Rendering Functions ---
-
-    // Create the country name resolver ONCE. If the API is not supported, create a dummy object.
     const countryNameResolver = (() => {
         try {
             return new Intl.DisplayNames(['en'], { type: 'country' });
         } catch (e) {
             console.warn("Intl.DisplayNames API not supported, country names will not be displayed.");
-            return null; // The helper function will handle this null value.
+            return null;
         }
     })();
     
-    // A single, reusable helper function for generating country display elements.
     function getCountryDisplay(countryCode) {
         let fullName = "Unknown Origin";
         let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
 
         if (typeof countryCode === "string" && /^[A-Z]{2}$/.test(countryCode)) {
-            // Check if the resolver was created successfully and if it can resolve the name.
             const name = countryNameResolver ? countryNameResolver.of(countryCode) : null;
-            if (name) {
+            if (name && name !== countryCode) {
                 fullName = name;
                 flagHtml = `<img class="country-flag" src="https://flagcdn.com/${countryCode.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
             } else {
-                // This handles cases where the code is valid format but not a real country (e.g., "XX")
-                // or if the Intl API isn't supported.
                 fullName = `Valid Code (${countryCode})`;
-                // We still try to show a flag, as flagcdn might support it (e.g., for EU).
                 flagHtml = `<img class="country-flag" src="https://flagcdn.com/${countryCode.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
             }
         } else if (countryCode) {
-            // Handles non-null but invalid format codes like "A12"
             fullName = `Invalid Code (${countryCode})`;
         }
         
@@ -171,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- THIS FUNCTION IS NOW CLEANED UP ---
     function renderRequestLogs(requests) {
         if (!requestsList) return;
         requestsList.innerHTML = '';
@@ -181,11 +173,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const item = document.createElement('div');
                 item.className = 'request-item';
                 const timestamp = new Date(req.timestamp).toLocaleString();
+                
+                // Get the consistent flag HTML. No more resizing with .replace()!
+                // The new CSS rule in admin.html will handle the sizing.
                 const { flagHtml } = getCountryDisplay(req.country_code);
-                const sizedFlagHtml = flagHtml.replace('width:24px', 'width:20px');
                 
                 item.innerHTML = `
-                    ${sizedFlagHtml}
+                    ${flagHtml}
                     <span class="timestamp">${timestamp}</span>
                     <span class="url" title="${req.url}">${req.url}</span>
                     <button class="request-copy-btn" data-url="${req.url}" title="Copy URL">
@@ -218,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         blockedDomainsList.appendChild(item);
     }
 
-    // --- Event Listeners ---
+    // --- Event Listeners (Unchanged) ---
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -294,10 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const domain = domainInput.value.trim();
             if (!adminPassword || !domain) return;
-            
             addDomainToList(domain);
             domainInput.value = '';
-
             try {
                 const response = await fetch('/api/admin/blocked-domains', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminPassword}` }, body: JSON.stringify({ domain }) });
                 if (!response.ok) throw new Error('Server rejected the request.');
@@ -316,16 +308,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (blockedDomainsList) {
         blockedDomainsList.addEventListener('click', async (e) => {
             if (!e.target.classList.contains('remove-btn')) return;
-            
             const domain = e.target.dataset.domain;
             if (!adminPassword || !confirm(`Are you sure you want to unblock "${domain}"?`)) return;
-
             const itemToRemove = e.target.closest('.request-item');
             itemToRemove.remove();
             if (blockedDomainsList.children.length === 0) {
                  blockedDomainsList.innerHTML = '<p>No domains are currently blocked.</p>';
             }
-
             try {
                 const response = await fetch('/api/admin/blocked-domains', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminPassword}` }, body: JSON.stringify({ domain }) });
                 if (!response.ok) throw new Error('Server rejected the request.');
