@@ -1,4 +1,4 @@
-// admin.js - The Final, Most Resilient Version
+// admin.js - The Final, Most Resilient Version (with performance fix)
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selectors ---
@@ -20,6 +20,109 @@ document.addEventListener('DOMContentLoaded', () => {
     const countryStatsList = document.getElementById('country-stats-list');
 
     let adminPassword = sessionStorage.getItem('admin_password');
+
+    // --- NEW: Create the Intl.DisplayNames resolver ONCE at the top level ---
+    // This is more efficient and reliable than creating it in a loop.
+    let countryNameResolver;
+    try {
+        // Attempt to create the real resolver.
+        countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
+    } catch (e) {
+        // If the browser is old and doesn't support it, create a dummy object.
+        console.error('Intl.DisplayNames API not supported, falling back to dummy resolver.');
+        countryNameResolver = { of: (code) => code }; // It will just return the code itself.
+    }
+    // --- END of new section ---
+
+    // --- Toast Notification System ---
+    const showAdminToast = (message, type = 'info') => {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+    };
+
+    // --- Core UI State Management ---
+    const showLogin = () => { /* ... unchanged ... */ };
+    const showDashboard = () => { /* ... unchanged ... */ };
+    const fetchDashboardData = async () => { /* ... unchanged ... */ };
+
+    // --- Data Rendering Functions ---
+
+    // A single, reusable helper function using the pre-built resolver.
+    function getCountryDisplay(countryCode) {
+        let fullName = "Unknown Origin";
+        let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
+
+        if (typeof countryCode === "string") {
+            const code = countryCode.toUpperCase().trim();
+            const validCountryCodeRegex = /^[A-Z]{2}$/;
+            
+            if (validCountryCodeRegex.test(code)) {
+                // We no longer need a try...catch here because the resolver is already created.
+                const name = countryNameResolver.of(code);
+                
+                // The key check remains the same: is the name valid and different from the code?
+                if (name && name !== code) {
+                    fullName = name;
+                    flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
+                } else {
+                    fullName = `Invalid Code (${code})`;
+                }
+            } else if (code) {
+                fullName = `Invalid Code (${code})`;
+            }
+        }
+        
+        return { fullName, flagHtml };
+    }
+
+    // --- All other functions from here down are UNCHANGED ---
+    // They will just work with the new, more efficient helper function.
+    
+    function renderDailyStats(dailyData) { /* ... unchanged ... */ }
+    function renderCountryStats(countryData) { /* ... unchanged ... */ }
+    function renderRequestLogs(requests) { /* ... unchanged ... */ }
+    function renderBlockedDomains(domains) { /* ... unchanged ... */ }
+    function addDomainToList(domain) { /* ... unchanged ... */ }
+    // All event listeners are also unchanged.
+
+// ... To make it easy, here is the full file again with the small but critical changes applied ...
+
+// admin.js - The Final, Most Resilient Version (with performance fix)
+
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Element Selectors ---
+    const loginContainer = document.getElementById('login-container');
+    const dashboardContainer = document.getElementById('dashboard-container');
+    const loginForm = document.getElementById('login-form');
+    const passwordInput = document.getElementById('password-input');
+    const loginError = document.getElementById('login-error');
+    const logoutBtn = document.getElementById('logout-btn');
+    const cacheSizeEl = document.getElementById('cache-size');
+    const logSizeEl = document.getElementById('log-size');
+    const clearCacheBtn = document.getElementById('clear-cache-btn');
+    const requestsList = document.getElementById('requests-list');
+    const blockDomainForm = document.getElementById('block-domain-form');
+    const domainInput = document.getElementById('domain-input');
+    const blockedDomainsList = document.getElementById('blocked-domains-list');
+    const redirectToggle = document.getElementById('redirect-toggle');
+    const dailyRequestsList = document.getElementById('daily-requests-list');
+    const countryStatsList = document.getElementById('country-stats-list');
+
+    let adminPassword = sessionStorage.getItem('admin_password');
+
+    // --- Create the Intl.DisplayNames resolver ONCE at the top level ---
+    let countryNameResolver;
+    try {
+        countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
+    } catch (e) {
+        console.error('Intl.DisplayNames API not supported, falling back to dummy resolver.');
+        countryNameResolver = { of: (code) => code };
+    }
 
     // --- Toast Notification System ---
     const showAdminToast = (message, type = 'info') => {
@@ -63,10 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 endpoints.map(url => fetch(url, { headers }))
             );
 
-            // This logic processes each response individually for robust error handling.
             const jsonData = [];
             for (const res of responses) {
-                // 1. Handle critical authentication failures first.
                 if (res.status === 401 || res.status === 403) {
                     console.error("Authentication failed with status:", res.status, ". Forcing re-login.");
                     sessionStorage.removeItem('admin_password');
@@ -75,13 +176,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         loginError.textContent = "Your session has expired. Please log in again.";
                         loginError.classList.remove('hidden');
                     }
-                    return showLogin(); // Stop execution immediately.
+                    return showLogin();
                 }
 
                 const contentType = res.headers.get("content-type");
                 const isJson = contentType && contentType.includes("application/json");
 
-                // 2. Handle non-OK responses (like 429 rate limit, 500 server error).
                 if (!res.ok) {
                     let errorMessage = `Server returned status ${res.status}`;
                     if (isJson) {
@@ -93,19 +193,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(errorMessage);
                 }
             
-                // 3. Handle cases where the server sends an OK status but the wrong content type.
                 if (!isJson) {
                     throw new Error(`Expected JSON but received ${contentType || 'an unknown format'}.`);
                 }
             
-                // If all checks pass, parse the JSON and add it to our results array.
                 jsonData.push(await res.json());
             }
 
-            // Destructure the now-validated JSON data.
             const [stats, requests, domains, settings, analytics] = jsonData;
         
-            // Render all the data to the dashboard
             if (cacheSizeEl) cacheSizeEl.textContent = stats.cacheSize;
             if (logSizeEl) logSizeEl.textContent = requests.length;
             if (redirectToggle) redirectToggle.checked = settings.is_redirect_mode_enabled;
@@ -122,9 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Data Rendering Functions ---
-
-    // A single, reusable helper function for generating country display elements.
-    // This ensures consistent validation and rendering logic everywhere.
     function getCountryDisplay(countryCode) {
         let fullName = "Unknown Origin";
         let flagHtml = `<span class="country-flag" style="display:inline-block;width:24px;font-style:italic;opacity:0.5;">?</span>`;
@@ -134,19 +227,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const validCountryCodeRegex = /^[A-Z]{2}$/;
             
             if (validCountryCodeRegex.test(code)) {
-                try {
-                    const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
-                    const name = countryNameResolver.of(code);
-                    if (name && name !== code) {
-                        fullName = name;
-                        flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
-                    } else {
-                        fullName = `Invalid Code (${code})`;
-                    }
-                } catch (e) {
-                     fullName = `Invalid Code (${code})`;
+                const name = countryNameResolver.of(code);
+                if (name && name !== code) {
+                    fullName = name;
+                    flagHtml = `<img class="country-flag" src="https://flagcdn.com/${code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
+                } else {
+                    fullName = `Invalid Code (${code})`;
                 }
-            } else if (code) { // Handle non-empty but invalid codes like "A12"
+            } else if (code) {
                 fullName = `Invalid Code (${code})`;
             }
         }
@@ -207,7 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const timestamp = new Date(req.timestamp).toLocaleString();
                 
                 const { flagHtml } = getCountryDisplay(req.country_code);
-                // Adjust flag size for the more compact log view
                 const sizedFlagHtml = flagHtml.replace('width:24px', 'width:20px');
                 
                 item.innerHTML = `
@@ -215,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="timestamp">${timestamp}</span>
                     <span class="url" title="${req.url}">${req.url}</span>
                     <button class="request-copy-btn" data-url="${req.url}" title="Copy URL">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                     </button>
                 `;
                 requestsList.appendChild(item);
