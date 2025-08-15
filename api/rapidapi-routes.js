@@ -45,7 +45,13 @@ router.post('/get-data', verifyRapidAPI, async (req, res, next) => {
 
         const cacheKey = `rapidapi_data_${url}`;
         if (cache.has(cacheKey)) {
-            return res.json(cache.get(cacheKey));
+            const cachedData = cache.get(cacheKey);
+            // If the cached entry is an error, return it immediately
+            if (cachedData.error) {
+                console.log(`[CACHE_HIT_FAILURE] Serving cached error for: ${url}`);
+                return res.status(500).json(cachedData);
+            }
+            return res.json(cachedData);
         }
 
         const pythonHelperPath = path.join(projectRoot, 'api', 'yt_dlp_helper.py');
@@ -58,7 +64,11 @@ router.post('/get-data', verifyRapidAPI, async (req, res, next) => {
 
         pythonProcess.on('close', (code) => {
             if (code !== 0) {
-                return res.status(500).json({ error: parseYtdlpError(errorOutput) });
+                const errorResponse = { error: parseYtdlpError(errorOutput) };
+                // --- NEW: Cache the failure for 5 minutes (300 seconds) ---
+                console.log(`[CACHE_SET_FAILURE] Caching failure for: ${url}`);
+                cache.set(cacheKey, errorResponse, 300);
+                return res.status(500).json(errorResponse);
             }
             try {
                 // Parse and format the data just like in your original routes.js
