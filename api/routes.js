@@ -130,7 +130,7 @@ router.get('/admin/requests', verifyAdmin, async (req, res) => {
 });
 
 // NEW: Analytics endpoint with bulletproof data sanitization
-router.get('/api/admin/analytics', verifyAdmin, async (req, res, next) => {
+router.get('/admin/analytics', verifyAdmin, async (req, res, next) => {
     if (!process.env.DATABASE_URL) {
         return res.json({ dailyCounts: [], countryCounts: [] });
     }
