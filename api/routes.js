@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const geoip = require('geoip-lite'); // <-- NEW: For country lookup
 const { pool } = require('./db');
 const NodeCache = require('node-cache');
+const { validatePublicUrl } = require('./url-validator');
 
 const router = express.Router();
 
