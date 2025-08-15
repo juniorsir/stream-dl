@@ -166,17 +166,177 @@ document.addEventListener('DOMContentLoaded', () => {
             let fullName = "Unknown Origin";
             let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`;
 
+            m Separate
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+ThinkingThoughts
+(experimental)
+Auto
+Expand to view model thoughts
+
+chevron_right
+This is a fantastic catch, and you've pinpointed a classic edge case that happens when moving from development to production. The error message is extremely specific and tells us exactly what's wrong.
+The Diagnosis
+The Error: Value country out of range for Intl.DisplayNames options property type
+The Cause: The JavaScript API Intl.DisplayNames, which you are using in admin.js to turn a country code like "US" into "United States", was given a value that it doesn't recognize as a valid country.
+The Culprit: This almost certainly happens when your geoip-lite library on the backend encounters an IP address it cannot identify (like a local network IP, a VPN, or a system process). In these cases, it correctly returns null. Your database stores this null value, and your analytics API sends it to the frontend. Your frontend code then tries to run Intl.DisplayNames.of(null), which causes it to crash.
+Even though we added validation, it seems a specific case is still getting through. The solution is to make the frontend code even more "bulletproof" by adding layers of validation to gracefully handle any invalid data the backend might send.
+The Solution: Make admin.js More Resilient
+We need to update the renderCountryStats function in admin.js to be more defensive. It needs to check for null values and also validate the format of the country code before trying to use it.
+Replace the renderCountryStats function in your admin.js file with this new, more robust version.
+code
+JavaScript
+// admin.js
+
+// ... (keep all other code the same) ...
+
+// --- THIS IS THE BULLETPROOF COUNTRY CODE VALIDATION FUNCTION ---
+function renderCountryStats(countryData) {
+    if (!countryStatsList) return;
+    countryStatsList.innerHTML = '';
+    if (!countryData || countryData.length === 0) {
+        countryStatsList.innerHTML = '<p>No country data from the last 30 days.</p>';
+        return;
+    }
+    
+    // Create the Intl.DisplayNames object once for efficiency
+    const countryNameResolver = new Intl.DisplayNames(['en'], { type: 'country' });
+    // A regular expression to ensure the code is two uppercase letters.
+    const validCountryCodeRegex = /^[A-Z]{2}$/;
+    
+    countryData.forEach(country => {
+        const item = document.createElement('div');
+        item.className = 'analytics-item';
+        
+        let fullName = "Unknown Origin";
+        let flagHtml = `<span class="country-flag" style="display: inline-block; width: 24px; font-style: italic; opacity: 0.5;">?</span>`; // Default placeholder
+
+            // --- THE FIX IS HERE (Layered Validation) ---
+    
+            // 1. First, check if the country_code exists and is a valid 2-letter string.
             if (country.country_code && validCountryCodeRegex.test(country.country_code)) {
                 try {
+                    // 2. If it's valid, try to get the full name. This catches non-standard codes like "XX".
                     fullName = countryNameResolver.of(country.country_code);
                     flagHtml = `<img class="country-flag" src="https://flagcdn.com/${country.country_code.toLowerCase()}.svg" alt="${fullName}" title="${fullName}">`;
                 } catch (e) {
+                    // 3. If the API fails, it's a validly formatted but non-existent code.
                     fullName = `Invalid Code (${country.country_code})`;
                     console.warn(`Intl API rejected a seemingly valid code: ${country.country_code}`);
                 }
             } else if (country.country_code) {
+                // 4. If the code exists but didn't pass the regex, it's malformed.
                 fullName = `Invalid Code (${country.country_code})`;
             }
+            // 5. If country.country_code is null or undefined, the default "Unknown Origin" is used.
+
+            // --- END OF FIX ---
 
             item.innerHTML = `
                 ${flagHtml}
