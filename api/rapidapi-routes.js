@@ -3,6 +3,7 @@
 const express = require('express');
 const { spawn } = require('child_process');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const { verifyRapidAPI } = require('./rapidapi-middleware');
 const { pool } = require('./db');
 const NodeCache = require('node-cache');
@@ -20,6 +21,28 @@ const MAX_DURATION_BASIC_PLAN = parseInt(process.env.MAX_DURATION_BASIC_PLAN) ||
 const MAX_DURATION_PRO_PLAN = parseInt(process.env.MAX_DURATION_PRO_PLAN) || 3600;
 // --- Helper Functions ---
 const parseYtdlpError = (stderr) => { if (!stderr) return 'An unknown error occurred.'; if (stderr.includes('private video')) return 'This video is private.'; if (stderr.includes('Sign in to confirm')) return 'This video requires login. Cookies may be needed.'; if (stderr.includes('Unsupported URL')) return 'This website or URL is not supported.'; if (stderr.includes('404')) return 'Video not found (404).'; if (stderr.includes('KeyError')) return 'This site has changed its structure.'; const errorLines = stderr.trim().split('\n').filter(line => line.trim() !== ''); const specificError = errorLines.pop(); return specificError ? `yt-dlp ERROR: ${specificError}` : 'An unknown error occurred.'; };
+const freeTierLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 60, // Limit BASIC plan users to 60 requests per minute (1 per second)
+    message: { error: 'You have exceeded the rate limit for the BASIC plan (1 request/second). Please upgrade for faster access.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+const rateLimitFreeTier = (req, res, next) => {
+    // Read the subscription plan header sent by RapidAPI
+    const subscriptionPlan = req.get('X-RapidAPI-Subscription');
+
+    // IMPORTANT: The plan name here must EXACTLY match the name on RapidAPI. It's case-sensitive.
+    // Double-check your RapidAPI dashboard for the exact plan name.
+    if (subscriptionPlan === 'BASIC') {
+        // If the user is on the free plan, apply our strict limiter.
+        return freeTierLimiter(req, res, next);
+    }
+
+    // If the user is on any other plan (PRO, ULTRA, etc.) or the header is missing,
+    // they are not rate-limited by our server. RapidAPI's own limits will apply.
+    next();
+};
 
 const logRapidApiRequest = async (url, user) => {
     // You can create a new logging function or table for paying customers
@@ -32,7 +55,7 @@ const logRapidApiRequest = async (url, user) => {
 
 // --- The Endpoint You Will Sell ---
 // This is the most valuable endpoint. We protect it with our new middleware.
-router.post('/get-data', verifyRapidAPI, async (req, res, next) => {
+router.post('/get-data', verifyRapidAPI, rateLimitFreeTier, async (req, res, next) => {
     try {
         const { url } = req.body;
         if (!url) {
